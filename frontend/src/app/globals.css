@@ -1,0 +1,182 @@
+@import "tailwindcss";
+
+
+@font-face {
+  font-family: 'YekanBakh';
+  src: url('/fonts/YekanBakh/YekanBakh-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'YekanBakh';
+  src: url('/fonts/YekanBakh/YekanBakh-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'YekanBakh';
+  src: url('/fonts/YekanBakh/YekanBakh-Bold.woff2') format('woff2');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-rgb: 255, 255, 255;
+  --nav-height: 3.5rem;
+  --bottom-nav-height: 4rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-rgb));
+  font-family: 'YekanBakh', sans-serif;
+  background-color: #F3F3F3;
+  direction: rtl;
+}
+
+/* استایل‌های موبایل */
+@media (max-width: 430px) {
+  body {
+    background-color: #F3F3F3;
+  }
+
+  #app-container {
+    width: 100%;
+    min-height: 100vh;
+    background-color: white;
+    position: relative;
+    overflow: hidden;
+    padding: var(--app-padding);
+  }
+
+  nav.top-nav,
+  nav.bottom-nav {
+    margin: var(--app-padding);
+    border-radius: 0.5rem;
+    width: calc(100% - 2 * var(--app-padding));
+    right: 50%;
+    transform: translateX(50%);
+  }
+
+  .main-content {
+    margin-top: calc(var(--nav-height) + var(--app-padding));
+    margin-bottom: calc(var(--bottom-nav-height) + var(--app-padding));
+    min-height: calc(100vh - var(--nav-height) - var(--bottom-nav-height) - 2 * var(--app-padding));
+  }
+}
+
+/* برای نمایش در مرکز صفحه در دسکتاپ */
+@media (min-width: 431px) {
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 0;
+    margin: 0;
+    background-color: #F3F3F3;
+  }
+
+  #app-container {
+    width: var(--app-width);
+    min-height: 100vh;
+    background-color: white;
+    position: relative;
+    overflow: hidden;
+    padding: var(--app-padding);
+  }
+
+  .main-content {
+    margin-top: calc(var(--nav-height) + var(--app-padding));
+    min-height: calc(100vh - var(--nav-height) - var(--app-padding));
+  }
+
+  /* استایل‌های مخصوص navbar و bottom navigation در حالت دسکتاپ */
+  nav.top-nav,
+  nav.bottom-nav {
+    width: calc(var(--app-width) - 2 * var(--app-padding));
+    right: 50%;
+    transform: translateX(50%);
+    border-radius: 0.5rem;
+    position: fixed;
+  }
+
+  nav.top-nav {
+    top: var(--app-padding);
+    height: var(--nav-height);
+  }
+
+  nav.bottom-nav {
+    bottom: var(--app-padding);
+    height: var(--bottom-nav-height);
+    background-color: #F3F3F3;
+    z-index: 50;
+  }
+}
+
+/* استایل‌های صفحه offline */
+.offline-page {
+  background-color: #2B286A;
+  background-image: url('/images/offline-bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  color: white;
+}
+
+.offline-page button {
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.offline-page button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.main-content {
+  padding-top: var(--nav-height);
+  padding-bottom: var(--bottom-nav-height);
+}
+
+/* Swiper Custom Styles */
+.swiper-button-next,
+.swiper-button-prev {
+  color: #DEBDA5 !important;
+  opacity: 0.8 !important;
+}
+
+.swiper-pagination-bullet {
+  background: #DEBDA5 !important;
+  opacity: 0.8 !important;
+}
+
+.swiper-pagination-bullet-active {
+  opacity: 1 !important;
+}
+
+/* Bottom Navigation Z-Index */
+.bottom-nav {
+  z-index: 9999 !important;
+}
