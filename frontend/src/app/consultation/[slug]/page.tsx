@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import Image from 'next/image'
 import { StarIcon, ClockIcon } from '@heroicons/react/24/solid'
 import { toPersianNumbers } from '@/utils/numbers'
@@ -46,9 +46,9 @@ const cleanDateString = (dateStr: string): string => {
   return cleaned
 }
 
-export default function ConsultantPage() {
+function ConsultantPageContent() {
   const router = useRouter()
-  const { slug } = useParams() // استفاده از useParams به‌جای دریافت مستقیم از props
+  const { slug } = useParams()
   const { user } = useAuthContext()
   const isAuthenticated = !!user
   const [consultantData, setConsultantData] = useState<ConsultantData | null>(null)
@@ -531,5 +531,13 @@ export default function ConsultantPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ConsultantPage() {
+  return (
+    <Suspense fallback={<div>در حال بارگذاری...</div>}>
+      <ConsultantPageContent />
+    </Suspense>
   )
 }

@@ -1,8 +1,9 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 
-export default function Offline() {
+function OfflineContent() {
   const searchParams = useSearchParams()
   const pageTitle = searchParams.get('page') || 'صفحه اصلی'
 
@@ -26,5 +27,13 @@ export default function Offline() {
         <div className="mt-4 text-xs opacity-60">V1.0.0</div>
       </div>
     </div>
+  )
+}
+
+export default function Offline() {
+  return (
+    <Suspense fallback={<div>در حال بارگذاری...</div>}>
+      <OfflineContent />
+    </Suspense>
   )
 } 
