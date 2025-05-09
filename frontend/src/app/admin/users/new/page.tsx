@@ -25,7 +25,7 @@ export default function NewUser() {
         is_premium: isPremium,
       };
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/create`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/create.`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -48,7 +48,7 @@ export default function NewUser() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full px-0">
       <h1 className="text-2xl font-bold">افزودن کاربر جدید</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">

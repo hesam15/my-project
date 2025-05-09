@@ -17,8 +17,8 @@ class Course extends Model
     ];
 
     protected $with = [
-        'likes:user_id,likable_type,likable_id',
-        'comments:title,content,active,user_id,commentable_type,commentable_id'
+        'likes',
+        'comments'
     ];
 
     public function creator() {

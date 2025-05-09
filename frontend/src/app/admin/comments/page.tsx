@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Eye, Trash2, Check, X, RotateCw } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { comments } from '@/lib/api';
 import { toast } from 'sonner';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
@@ -98,38 +97,25 @@ const ActionButton = ({
 export default function CommentsPage() {
   const [commentsList, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedComment, setSelectedComment] = useState<Comment | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [statusLoading, setStatusLoading] = useState<'approve' | 'reject' | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const router = useRouter();
 
-  useEffect(() => {
-    fetchComments();
-  }, []);
-
+  // Move fetchComments outside of useEffect so it can be used elsewhere
   const fetchComments = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/comments`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        credentials: 'include',
-      });
-
-      if (!response.ok) throw new Error('خطا در دریافت نظرات');
-      const data = await response.json();
-      setComments(data);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'خطا در دریافت نظرات');
-    } finally {
-      setLoading(false);
+      const response = await comments.getAll()
+      setComments(response.data)
+    } catch {
+      toast.error('خطا در دریافت لیست نظرات')
     }
-  };
+  }
+
+  useEffect(() => {
+    fetchComments()
+  }, [])
 
   const handleStatusChange = async (id: number, status: boolean, loadingType: 'approve' | 'reject') => {
     setStatusLoading(loadingType);
@@ -137,8 +123,8 @@ export default function CommentsPage() {
       await comments.changeStatus(id.toString(), status);
       await fetchComments();
       toast.success(status ? 'نظر تایید شد.' : 'نظر رد شد.');
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'خطا در تغییر وضعیت نظر');
+    } catch {
+      toast.error('خطا در تغییر وضعیت نظر');
     } finally {
       setStatusLoading(null);
     }
@@ -160,8 +146,8 @@ export default function CommentsPage() {
       if (!response.ok) throw new Error('خطا در حذف نظر');
       await fetchComments();
       toast.success('نظر با موفقیت حذف شد.');
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'خطا در حذف نظر');
+    } catch {
+      toast.error('خطا در حذف نظر');
     } finally {
       setLoading(false);
     }
@@ -174,15 +160,6 @@ export default function CommentsPage() {
           {[...Array(5)].map((_, i) => (
             <div key={i} className="animate-pulse bg-gray-100 rounded-lg p-4 h-20" />
           ))}
-        </div>
-      );
-    }
-
-    if (error) {
-      return (
-        <div className="text-center p-6 space-y-4">
-          <p className="text-red-500">{error}</p>
-          <Button onClick={fetchComments}>تلاش مجدد</Button>
         </div>
       );
     }
@@ -250,9 +227,7 @@ export default function CommentsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold px-4 pt-4">مدیریت نظرات</h1>
-      
+    <div className="space-y-6 w-full px-0">
       {renderContent()}
 
       {/* Comment Details Modal */}

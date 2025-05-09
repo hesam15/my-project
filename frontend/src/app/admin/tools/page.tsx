@@ -6,6 +6,9 @@ import { Eye, Pencil, Trash2, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import { toast } from 'react-hot-toast';
+import { managementTools } from '@/lib/api';
+import Image from 'next/image';
 
 interface Tool {
   id: number;
@@ -18,69 +21,31 @@ interface Tool {
 export default function ToolsPage() {
   const [tools, setTools] = useState<Tool[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
+    const fetchTools = async () => {
+      try {
+        const response = await managementTools.getAll();
+        setTools(response.data);
+      } catch {
+        toast.error('خطا در دریافت لیست ابزارها');
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchTools();
   }, []);
 
-  const fetchTools = async () => {
-    setLoading(true);
-    setError(null);
+  const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tools`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('خطا در دریافت ابزارها');
-      }
-
-      const data = await response.json();
-      setTools(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'خطا در دریافت ابزارها');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDelete = (id: number) => {
-    setDeleteId(id);
-    setConfirmOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!deleteId) return;
-    setConfirmOpen(false);
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tools/${deleteId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('خطا در حذف ابزار');
-      }
-
-      fetchTools();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'خطا در حذف ابزار');
-    } finally {
-      setLoading(false);
+      await managementTools.delete(id);
+      setTools(tools.filter(tool => tool.id !== Number(id)));
+      toast.success('ابزار با موفقیت حذف شد');
+    } catch {
+      toast.error('خطا در حذف ابزار');
     }
   };
 
@@ -88,14 +53,6 @@ export default function ToolsPage() {
     return (
       <div className="text-center p-6">
         <p>در حال بارگذاری...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center text-red-500 p-6">
-        <p>{error}</p>
       </div>
     );
   }
@@ -126,9 +83,11 @@ export default function ToolsPage() {
                   <tr key={tool.id} className="border-b">
                     <td className="p-4">
                       {tool.thumbnail_path && (
-                        <img
+                        <Image
                           src={`${process.env.NEXT_PUBLIC_API_URL}/storage/${tool.thumbnail_path}`}
                           alt={tool.name}
+                          width={80}
+                          height={48}
                           className="w-20 h-12 object-cover rounded"
                         />
                       )}
@@ -159,7 +118,10 @@ export default function ToolsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDelete(tool.id)}
+                          onClick={() => {
+                            setDeleteId(tool.id.toString());
+                            setConfirmOpen(true);
+                          }}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -176,7 +138,7 @@ export default function ToolsPage() {
       <ConfirmDialog
         open={confirmOpen}
         message="آیا از حذف این ابزار اطمینان دارید؟"
-        onConfirm={confirmDelete}
+        onConfirm={() => { if (deleteId !== null) handleDelete(deleteId); }}
         onCancel={() => setConfirmOpen(false)}
       />
 

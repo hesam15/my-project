@@ -18,8 +18,6 @@ class CheckAuthTokenCookie
     public function handle(Request $request, Closure $next): Response
     {
         if(!$request->cookie('auth_token') || !PersonalAccessToken::findToken($request->cookie('auth_token'))) {
-            // $response = $request->cookie('auth_token') ? Cookie::queue(Cookie::forget('auth_token')) : '';
-
             return response()->json([
                 'message' => 'احراز هویت انجام نشده است'
             ], 401);

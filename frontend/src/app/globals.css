@@ -3,7 +3,7 @@
 
 @font-face {
   font-family: 'YekanBakh';
-  src: url('/fonts/YekanBakh/YekanBakh-Regular.woff2') format('woff2');
+  src: url('/fonts/YekanBakh/family/YekanBakh-Regular.woff') format('woff');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -11,7 +11,7 @@
 
 @font-face {
   font-family: 'YekanBakh';
-  src: url('/fonts/YekanBakh/YekanBakh-Medium.woff2') format('woff2');
+  src: url('/fonts/YekanBakh/family/YekanBakh-Medium.woff') format('woff');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -19,7 +19,7 @@
 
 @font-face {
   font-family: 'YekanBakh';
-  src: url('/fonts/YekanBakh/YekanBakh-Bold.woff2') format('woff2');
+  src: url('/fonts/YekanBakh/family/YekanBakh-Bold.woff') format('woff');
   font-weight: bold;
   font-style: normal;
   font-display: swap;
@@ -87,7 +87,7 @@ body {
 
 /* برای نمایش در مرکز صفحه در دسکتاپ */
 @media (min-width: 431px) {
-  body {
+  body:not(.admin-dashboard-desktop) {
     display: flex;
     justify-content: center;
     align-items: flex-start;
@@ -97,7 +97,7 @@ body {
     background-color: #F3F3F3;
   }
 
-  #app-container {
+  body:not(.admin-dashboard-desktop) #app-container {
     width: var(--app-width);
     min-height: 100vh;
     background-color: white;

@@ -7,10 +7,6 @@ import { useAuthContext } from '@/contexts/AuthContext';
 export default function WalletSection() {
   const { user, loading } = useAuthContext();
 
-  console.log('WalletSection - User:', user);
-  console.log('WalletSection - Loading:', loading);
-  console.log('WalletSection - User roles:', user?.roles);
-
   if (loading) {
     return (
       <div className="w-full space-y-4">
@@ -23,20 +19,16 @@ export default function WalletSection() {
   }
 
   if (!user) {
-    console.log('WalletSection - No user, not rendering');
     return null;
   }
 
   const isCustomer = user?.role === 'customer';
-  console.log('WalletSection - Is customer:', isCustomer);
 
   if (!isCustomer) {
-    console.log('WalletSection - User is not a customer, not rendering');
     return null;
   }
 
   const balanceAmount = user.balance.amount;
-  console.log('WalletSection - Balance amount:', balanceAmount);
 
   return (
     <div className="w-full space-y-4">

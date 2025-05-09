@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { toast } from 'react-hot-toast';
 
 
 interface Course {
@@ -77,9 +78,10 @@ export default function NewVideo() {
         return;
       }
 
+      toast.success('ویدیو با موفقیت ایجاد شد');
       router.push('/admin/videos');
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'خطا در ایجاد ویدیو');
+    } catch {
+      toast.error('خطا در ایجاد ویدیو');
     } finally {
       setLoading(false);
     }
@@ -87,8 +89,6 @@ export default function NewVideo() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">افزودن ویدیو جدید</h1>
-
       <form onSubmit={handleSubmit} className="space-y-4" encType="multipart/form-data">
         {error && (
           <div className="p-4 bg-red-50 text-red-700 rounded-lg">

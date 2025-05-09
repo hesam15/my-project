@@ -11,12 +11,16 @@ use Laravel\Sanctum\PersonalAccessToken;
 class UserController extends Controller
 {
     public function index() {
-        $admins = User::all();
+        $users = User::all();
 
-        return response()->json($admins);
+        return response()->json($users);
     }
 
-    public function create(UserStoreRequest $request) {
+    public function show(User $user) {
+        return response()->json($user);
+    }
+
+    public function store(UserStoreRequest $request) {
         $user = User::create($request->all());
 
         if($request->role == 'customer') {

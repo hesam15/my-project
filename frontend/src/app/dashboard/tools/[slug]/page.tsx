@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { HeartIcon, ChatBubbleLeftIcon } from '@heroicons/react/24/outline'
 import { toPersianNumbers } from '@/utils/numbers'
+import { useRouter } from 'next/navigation'
 
 // Temporary data until we have an API
 const toolData = {
@@ -15,7 +16,13 @@ const toolData = {
   comments: 83
 }
 
-export default function ToolPage({ params }: { params: { slug: string } }) {
+interface ToolPageProps {
+  params: {
+    slug: string
+  }
+}
+
+export default function ToolPage({ params }: ToolPageProps) {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-md">

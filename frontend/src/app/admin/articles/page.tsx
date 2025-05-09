@@ -9,6 +9,7 @@ import { posts } from '@/lib/api';
 import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import Image from 'next/image';
 
 interface Article {
   id: string;
@@ -24,45 +25,34 @@ export default function ArticlesPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string>('');
 
   useEffect(() => {
-    fetchArticles();
-  }, []);
-
-  const fetchArticles = async () => {
-    setLoading(true);
-    try {
-      const response = await posts.getAll();
-      setArticles(response.data);
-    } catch (error) {
-      toast.error('خطا در دریافت لیست مقالات');
-    } finally {
-      setLoading(false);
+    const fetchArticles = async () => {
+      try {
+        const response = await posts.getAll()
+        setArticles(response.data)
+      } catch {
+        toast.error('خطا در دریافت لیست مقالات')
+      } finally {
+        setLoading(false)
+      }
     }
-  };
+
+    fetchArticles()
+  }, [])
 
   const handleEdit = (id: string) => {
     router.push(`/admin/articles/edit/${id}`);
   };
 
-  const handleDelete = (id: string) => {
-    setDeleteId(id);
-    setConfirmOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!deleteId) return;
-    setConfirmOpen(false);
-    setLoading(true);
+  const handleDelete = async (id: string) => {
     try {
-      await posts.delete(deleteId);
-      setArticles(articles.filter((a) => a.id !== deleteId));
-      toast.success('مقاله با موفقیت حذف شد.');
-    } catch (err: any) {
-      toast.error('خطا در حذف مقاله');
-    } finally {
-      setLoading(false);
+      await posts.delete(id)
+      setArticles(articles.filter(article => article.id !== id))
+      toast.success('مقاله با موفقیت حذف شد')
+    } catch {
+      toast.error('خطا در حذف مقاله')
     }
   };
 
@@ -71,7 +61,7 @@ export default function ArticlesPage() {
   }
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="space-y-6 w-full px-0 font-sans">
       <Card>
         <CardContent>
           <Table>
@@ -96,14 +86,14 @@ export default function ArticlesPage() {
                 articles.map((article) => (
                   <TableRow key={article.id}>
                     <TableCell>
-                      {article.thumbnail_path ? (
-                        <img
+                      {article.thumbnail_path && (
+                        <Image
                           src={`${process.env.NEXT_PUBLIC_API_URL}/storage/${article.thumbnail_path}`}
                           alt={article.title}
-                          className="w-16 h-12 object-cover rounded"
+                          width={80}
+                          height={48}
+                          className="w-20 h-12 object-cover rounded"
                         />
-                      ) : (
-                        <span className="text-gray-400">—</span>
                       )}
                     </TableCell>
                     <TableCell>{article.title}</TableCell>
@@ -144,7 +134,7 @@ export default function ArticlesPage() {
       <ConfirmDialog
         open={confirmOpen}
         message="آیا از حذف این مقاله اطمینان دارید؟"
-        onConfirm={confirmDelete}
+        onConfirm={() => handleDelete(deleteId)}
         onCancel={() => setConfirmOpen(false)}
       />
 

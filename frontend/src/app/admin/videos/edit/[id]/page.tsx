@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { toast } from 'react-hot-toast';
+import { videos } from '@/lib/api';
+import Image from 'next/image';
 
 interface Video {
   id: number;
@@ -23,140 +26,78 @@ interface Course {
   title: string;
 }
 
-export default function EditVideoPage() {
-  const params = useParams();
+interface EditVideoPageProps {
+  params: {
+    id: string
+  }
+}
+
+export default function EditVideoPage({ params }: EditVideoPageProps) {
   const router = useRouter();
   const [video, setVideo] = useState<Video | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [formError, setFormError] = useState('');
-  const [formLoading, setFormLoading] = useState(false);
 
   useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // دریافت اطلاعات ویدیو
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/videos/${params.id}`, {
+          credentials: 'include',
+        });
+        if (!res.ok) throw new Error('خطا در دریافت اطلاعات ویدیو');
+        const data = await res.json();
+        setVideo(data);
+
+        // دریافت لیست دوره‌ها
+        const resCourses = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses`, {
+          credentials: 'include',
+        });
+        if (!resCourses.ok) throw new Error('خطا در دریافت لیست دوره‌ها');
+        const coursesData = await resCourses.json();
+        setCourses(coursesData);
+      } catch (err) {
+        console.error('خطا در دریافت اطلاعات', err);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchData();
   }, [params.id]);
 
-  const fetchData = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      // دریافت اطلاعات ویدیو
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/videos/${params.id}`, {
-        credentials: 'include',
-      });
-      if (!res.ok) throw new Error('خطا در دریافت اطلاعات ویدیو');
-      const data = await res.json();
-      setVideo(data);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!video) return
 
-      // دریافت لیست دوره‌ها
-      const resCourses = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses`, {
-        credentials: 'include',
-      });
-      if (!resCourses.ok) throw new Error('خطا در دریافت لیست دوره‌ها');
-      const coursesData = await resCourses.json();
-      setCourses(coursesData);
-    } catch (err) {
-      setError('خطا در دریافت اطلاعات');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setFormLoading(true);
-    setFormError('');
-  
     try {
-      const formData = new FormData();
-  
-      // اضافه کردن مقادیر فرم به FormData
-      const title = e.currentTarget.title.value;
-      const description = e.currentTarget.description.value;
-      const courseId = e.currentTarget.course_id.value;
-      const videoFile = e.currentTarget.video_path.files[0];
-      const thumbnailFile = e.currentTarget.thumbnail_path.files[0];
-  
-      // اضافه کردن مقادیر به FormData
-      formData.append('title', title); // همیشه مقدار فعلی رو بفرست، حتی اگه خالی باشه
-      formData.append('description', description);
-      formData.append('course_id', courseId);
-      formData.append('is_premium', video?.is_premium?.toString() || 'false');
-  
-      // مدیریت فایل‌ها
-      if (videoFile) {
-        formData.append('video_path', videoFile);
-      } else {
-        formData.append('video_path', video?.video_path || '');
+      const formData = new FormData()
+      formData.append('title', video.title)
+      formData.append('description', video.description)
+      formData.append('is_premium', video.is_premium ? '1' : '0')
+      if (video.thumbnail_path) {
+        formData.append('thumbnail_path', video.thumbnail_path)
       }
-  
-      if (thumbnailFile) {
-        formData.append('thumbnail_path', thumbnailFile);
-      } else {
-        formData.append('thumbnail_path', video?.thumbnail_path || '');
-      }
-  
-      formData.append('_method', 'PUT');
-  
-      // لاگ برای دیباگ
-      console.log([...formData.entries()]);
-  
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/videos/${params.id}`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      });
-  
-      if (!response.ok) {
-        if (response.status === 422) {
-          const data = await response.json();
-          if (data.details) {
-            const messages = Object.values(data.details)
-              .flat()
-              .join('، ');
-            setFormError(messages);
-          } else {
-            setFormError(data.message || 'خطا در اعتبارسنجی اطلاعات');
-          }
-          return;
-        }
-        if (response.status === 409) {
-          const data = await response.json();
-          setFormError(data.message || 'فایل ویدیویی تکراری است');
-          return;
-        }
-        const data = await response.json();
-        setFormError(data.message || 'خطا در ویرایش ویدیو');
-        return;
-      }
-  
-      router.push('/admin/videos');
+
+      await videos.update(params.id, formData)
+      toast.success('ویدیو با موفقیت بروزرسانی شد')
+      router.push('/admin/videos')
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : 'خطا در ویرایش ویدیو');
-    } finally {
-      setFormLoading(false);
+      toast.error('خطا در بروزرسانی ویدیو')
     }
-  };
+  }
 
   if (loading) {
     return <div className="p-6 text-center">در حال بارگذاری...</div>;
   }
 
-  if (error || !video) {
-    return <div className="p-6 text-center text-red-500">{error || 'ویدیو یافت نشد'}</div>;
+  if (!video) {
+    return <div className="p-6 text-center text-red-500">ویدیو یافت نشد</div>;
   }
 
   return (
-    <div className="p-6 max-w-xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">ویرایش ویدیو</h1>
+    <div className="space-y-6 w-full px-0 py-6">
       <form onSubmit={handleSubmit} className="space-y-4" encType="multipart/form-data">
-        {formError && (
-          <div className="p-4 bg-red-50 text-red-700 rounded-lg">
-            {formError}
-          </div>
-        )}
-
         <div>
           <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
             عنوان ویدیو
@@ -209,9 +150,11 @@ export default function EditVideoPage() {
             تصویر بندانگشتی فعلی
           </label>
           {video.thumbnail_path && (
-            <img
+            <Image
               src={`${process.env.NEXT_PUBLIC_API_URL}/storage/${video.thumbnail_path}`}
               alt="thumbnail"
+              width={128}
+              height={80}
               className="w-32 h-20 object-cover rounded mb-2"
             />
           )}
@@ -273,10 +216,9 @@ export default function EditVideoPage() {
 
         <button
           type="submit"
-          disabled={formLoading}
           className="w-full py-2 px-4 bg-primary text-white rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50"
         >
-          {formLoading ? 'در حال ثبت تغییرات...' : 'ثبت تغییرات'}
+          ثبت تغییرات
         </button>
       </form>
     </div>

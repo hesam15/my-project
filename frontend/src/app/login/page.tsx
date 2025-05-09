@@ -1,12 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthContext } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
-  const router = useRouter();
   const { login, error: authError } = useAuthContext();
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');

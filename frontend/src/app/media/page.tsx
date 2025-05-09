@@ -1,119 +1,104 @@
 'use client'
 
-import VideoPlayer from '@/components/media/VideoPlayer'
-import ArticleCard from '@/components/articles/ArticleCard'
-import { Swiper, SwiperSlide } from 'swiper/react'
-import { Navigation, Pagination } from 'swiper/modules'
-import 'swiper/css'
-import 'swiper/css/navigation'
-import 'swiper/css/pagination'
+import { useState, useEffect } from 'react'
+import VideoSlider from '@/components/media/VideoSlider'
+import { toast } from 'sonner'
 
-// Custom styles for Swiper
-const swiperStyles = `
-  .swiper-button-next,
-  .swiper-button-prev {
-    color: #DEBDA5 !important;
-  }
-  .swiper-pagination-bullet-active {
-    background: #DEBDA5 !important;
-  }
-  .swiper-button-next:after,
-  .swiper-button-prev:after {
-    font-size: 20px !important;
-  }
-  .swiper-button-next,
-  .swiper-button-prev {
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-  .swiper:hover .swiper-button-next,
-  .swiper:hover .swiper-button-prev {
-    opacity: 1;
-  }
-`
-
-// Temporary data until we have an API
-const featuredVideo = {
-  id: 1,
-  title: 'چگونه مهارت‌های ارتباطی خود را تقویت کنیم؟',
-  description: 'در این ویدیو به بررسی روش‌های موثر برای بهبود مهارت‌های ارتباطی و ایجاد روابط حرفه‌ای قوی می‌پردازیم...',
-  thumbnailSrc: '/images/books.jpg',
-  date: '۱۴۰۲/۰۸/۲۵',
-  likes: 834,
-  comments: 83
+interface Video {
+  id: number
+  title: string
+  thumbnail_path: string
+  created_at: string
+  views_count: number
+  comments_count: number
+  is_premium: number
 }
 
-const latestVideos = [
-  {
-    id: 2,
-    title: 'اصول مدیریت زمان در محیط کار',
-    description: 'آموزش تکنیک‌های کاربردی برای مدیریت بهتر زمان و افزایش بهره‌وری در محیط کار...',
-    image: '/images/nice.jpg',
-    date: '۱۴۰۲/۰۸/۲۴',
-    likes: 756,
-    comments: 92
-  },
-  {
-    id: 3,
-    title: 'رازهای موفقیت در مذاکرات تجاری',
-    description: 'در این ویدیو، تکنیک‌های پیشرفته مذاکره و اصول موفقیت در جلسات کاری را بررسی می‌کنیم...',
-    image: '/images/nice.jpg',
-    date: '۱۴۰۲/۰۸/۲۳',
-    likes: 612,
-    comments: 45
-  },
-  {
-    id: 4,
-    title: 'مدیریت استرس در محیط کار',
-    description: 'راهکارهای عملی برای کنترل استرس و حفظ تعادل در زندگی حرفه‌ای...',
-    image: '/images/nice.jpg',
-    date: '۱۴۰۲/۰۸/۲۲',
-    likes: 945,
-    comments: 128
-  },
-  {
-    id: 5,
-    title: 'اصول رهبری موثر در سازمان',
-    description: 'بررسی ویژگی‌های یک رهبر موفق و تکنیک‌های رهبری تیم در سازمان‌های مدرن...',
-    image: '/images/nice.jpg',
-    date: '۱۴۰۲/۰۸/۲۱',
-    likes: 834,
-    comments: 76
-  }
-]
-
 export default function MediaPage() {
-  return (
-    <>
-      <style jsx global>{swiperStyles}</style>
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-lg font-bold mb-4 text-gray-700 font-yekan-lg">آخرین ویدیو مجموعه ۷</h2>
-          <div className="border border-gray-300 rounded-2xl overflow-hidden">
-            <VideoPlayer {...featuredVideo} isLarge />
-          </div>
-        </div>
+  const [featuredVideo, setFeaturedVideo] = useState<Video | null>(null)
+  const [latestVideos, setLatestVideos] = useState<Video[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string | null>(null)
 
-        <div className="h-px bg-gray-200" />
+  useEffect(() => {
+    const fetchVideos = async () => {
+      setLoading(true)
+      setError(null)
 
-        <div>
-          <h2 className="text-lg font-bold mb-4 text-gray-700 font-yekan-lg">جدیدترین ویدیوها</h2>
-          <Swiper
-            modules={[Navigation, Pagination]}
-            spaceBetween={16}
-            slidesPerView={2}
-            navigation
-            pagination={{ clickable: true }}
-            className="w-full"
-          >
-            {latestVideos.map((video) => (
-              <SwiperSlide key={video.id}>
-                <ArticleCard {...video} />
-              </SwiperSlide>
-            ))}
-          </Swiper>
+      try {
+        if (!process.env.NEXT_PUBLIC_API_URL) {
+          throw new Error('NEXT_PUBLIC_API_URL is not defined')
+        }
+
+        const url = `${process.env.NEXT_PUBLIC_API_URL}/api/videos`
+        console.log('Fetching videos from:', url)
+
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        })
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error('Error response text:', errorText)
+          throw new Error(`خطای سرور: ${response.status} ${response.statusText}`)
+        }
+
+        const result: Video[] = await response.json()
+        console.log('API response:', JSON.stringify(result, null, 2))
+
+        const sortedVideos = result
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+        setFeaturedVideo(sortedVideos[0] || null)
+        setLatestVideos(sortedVideos.slice(1, 5))
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'خطای ناشناخته در بارگذاری ویدیوها'
+        console.error('Error fetching videos:', err)
+        setError(errorMessage)
+        toast.error(errorMessage)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchVideos()
+  }, [])
+
+  if (loading) {
+    return <div className="text-center py-10">در حال بارگذاری...</div>
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-10">
+        <div className="bg-red-50 text-red-600 border border-red-100 rounded-lg p-4 max-w-md mx-auto">
+          <p className="text-lg font-medium">{error}</p>
+          <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
+            تلاش مجدد
+          </button>
         </div>
       </div>
-    </>
-  )
-} 
+    )
+  }
+
+  if (!featuredVideo && !latestVideos.length) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh] px-4">
+        <div className="bg-white rounded-lg shadow-md border border-gray-100 p-6 max-w-md w-full text-center space-y-4">
+          <h2 className="text-xl font-semibold text-gray-800">هیچ ویدیویی یافت نشد</h2>
+          <p className="text-sm text-gray-600">در حال حاضر ویدیویی موجود نیست. بعداً دوباره سر بزنید!</p>
+          <button onClick={() => window.location.href = '/'} className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-semibold">
+            بازگشت به صفحه اصلی
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return <VideoSlider videos={latestVideos} featuredVideo={featuredVideo} />
+}

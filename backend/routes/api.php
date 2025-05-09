@@ -1,18 +1,29 @@
 <?php
 
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\ConsultationController;
+use App\Http\Controllers\ConsultationResevationController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\ManagementToolController;
 use App\Http\Controllers\PostController;
+use App\Http\Controllers\StatsController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VideoController;
+use App\Models\ConsultationResevation;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/reserved-times', [ConsultationResevationController::class, 'reservedTimes']);
 
 Route::prefix('/courses')->controller(CourseController::class)->group(function() {
     Route::get('/', 'index');
     Route::get('/{course}', 'show');
+});
+
+Route::prefix('/videos')->controller(VideoController::class)->group(function() {
+    Route::get('/', 'index');
+    Route::get('/{video}', 'show');
 });
 
 Route::prefix('/posts')->controller(PostController::class)->group(function() {
@@ -25,21 +36,13 @@ Route::prefix('/tools')->controller(ManagementToolController::class)->group(func
     Route::get('/{tool}', 'show');
 });
 
-Route::prefix('/consultation')->controller(ConsultationController::class)->group(function() {
+Route::prefix('/consultations')->controller(ConsultationController::class)->group(function() {
     Route::get('/', 'index');
-    Route::get('/{tool}', 'show');
+    Route::get('/{consultation}', 'show');
 });
 
 Route::middleware('checkTokenCookie')->group(function() {
-    Route::middleware('admin')->group(function() {
-        Route::get('/users', [UserController::class, 'index']);
-        Route::post('/users/create', [UserController::class, 'create']);
-
-        Route::post('/courses/{course}/signVideo', [CourseController::class, 'signVideo']);
-        Route::apiResource('courses', CourseController::class)->only(['store', 'update', 'destroy']);
-
-        Route::apiResource('videos', VideoController::class);
-    });
+    Route::get('/users/check', [AuthController::class, 'check']);
 
     Route::post('/comments/{comment}/status', [CommentController::class, 'changeStatus']);
     Route::apiResource('comments', CommentController::class)->only(['index', 'store', 'update', 'destroy']);
@@ -48,9 +51,22 @@ Route::middleware('checkTokenCookie')->group(function() {
 
     Route::apiResource('tools', ManagementToolController::class)->only(['store', 'update', 'destroy']);
 
-    Route::apiResource('consultation', ManagementToolController::class)->only(['store', 'update', 'destroy']);
+    Route::apiResource('consultations', ConsultationController::class)->only(['store', 'update', 'destroy']);
+
+    Route::apiResource('reservations', ConsultationResevationController::class);
 
     Route::post('/like', [LikeController::class, 'like']);
+
+    Route::middleware('admin')->group(function() {
+        Route::get('/getAll', [StatsController::class, 'index']);
+
+        Route::apiResource('/users', UserController::class);
+
+        Route::post('/courses/{course}/signVideo', [CourseController::class, 'signVideo']);
+        Route::apiResource('courses', CourseController::class)->only(['store', 'update', 'destroy']);
+
+        Route::apiResource('videos', VideoController::class)->only(['store', 'update', 'destroy']);
+    });
 });
 
 require __DIR__.'/auth.php';

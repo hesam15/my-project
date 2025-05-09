@@ -54,7 +54,13 @@ interface CourseData {
   comments_count: number
 }
 
-export default function CoursePage({ params }: { params: Promise<{ slug: string }> }) {
+interface CoursePageProps {
+  params: {
+    slug: string
+  }
+}
+
+export default function CoursePage({ params }: CoursePageProps) {
   const resolvedParams = use(params)
   const [courseData, setCourseData] = useState<CourseData | null>(null)
   const [isLiking, setIsLiking] = useState(false)
@@ -65,9 +71,6 @@ export default function CoursePage({ params }: { params: Promise<{ slug: string 
   useEffect(() => {
     const fetchCourse = async () => {
       try {
-        console.log('Fetching course with slug:', resolvedParams.slug)
-        console.log('API URL:', process.env.NEXT_PUBLIC_API_URL)
-        console.log(`${process.env.NEXT_PUBLIC_API_URL}/api/courses/${resolvedParams.slug}`);
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses/${resolvedParams.slug}`, {
           headers: {
             'Content-Type': 'application/json',
@@ -75,10 +78,8 @@ export default function CoursePage({ params }: { params: Promise<{ slug: string 
           },
           credentials: 'include',
         })
-        console.log('Response status:', response.status)
         if (response.ok) {
           const data = await response.json()
-          console.log('Course Data:', data)
           setCourseData({
             ...data,
             likes_count: data.likes.length,
@@ -89,17 +90,19 @@ export default function CoursePage({ params }: { params: Promise<{ slug: string 
           setError(null)
         } else {
           const errorData = await response.json()
-          console.error('Error fetching course:', { status: response.status, data: errorData })
           setError(`خطا در بارگذاری دوره: ${response.status} ${response.statusText}`)
         }
       } catch (error) {
-        console.error('Error fetching course:', error)
         setError('خطایی در ارتباط با سرور رخ داد')
       }
     }
 
     fetchCourse()
   }, [resolvedParams.slug, user])
+
+  useEffect(() => {
+    generateTimeSlots();
+  }, [generateTimeSlots]);
 
   const handleLike = async () => {
     if (!courseData || isLiking || !user) return;

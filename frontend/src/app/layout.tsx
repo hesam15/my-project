@@ -24,7 +24,7 @@ export default function RootLayout({
   return (
     <html lang="fa" dir="rtl">
       <body className="font-[Yekan Bakh]">
-        <div id="app-container">
+        <div className='w-full'>
           <AuthProvider>
             {children}
           </AuthProvider>

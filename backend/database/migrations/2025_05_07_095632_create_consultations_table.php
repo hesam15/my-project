@@ -17,9 +17,9 @@ return new class extends Migration
             $table->string('consultant');
             $table->string('description');
             $table->string('license');
-            $table->integer('time')->default(60);
+            $table->integer('consultation_time')->default(60);
             $table->string('active_times');
-            $table->boolean('thursdays_open');
+            $table->boolean('thursdays_open')->default(true);
             $table->timestamps();
         });
     }

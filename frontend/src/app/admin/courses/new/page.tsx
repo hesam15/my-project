@@ -46,9 +46,7 @@ export default function NewCourse() {
   };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">افزودن دوره جدید</h1>
-
+    <div className="space-y-6 w-full px-0">
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <div className="p-4 bg-red-50 text-red-700 rounded-lg">

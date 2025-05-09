@@ -8,32 +8,27 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { posts } from '@/lib/api';
 import { toast } from 'sonner';
 
 export default function NewArticlePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [isPremium, setIsPremium] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
     try {
       const formData = new FormData(e.currentTarget);
       formData.append('is_premium', isPremium.toString());
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/posts`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/posts`, {
         method: 'POST',
         credentials: 'include',
         body: formData,
       });
-
       toast.success('مقاله با موفقیت ایجاد شد');
       router.push('/admin/articles');
-    } catch (error) {
-      setError('خطا در ایجاد مقاله');
+    } catch {
       toast.error('خطا در ایجاد مقاله');
     } finally {
       setLoading(false);
@@ -41,7 +36,7 @@ export default function NewArticlePage() {
   };
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="space-y-6 w-full px-0 py-6">
       <Card>
         <CardHeader>
           <CardTitle>ایجاد مقاله جدید</CardTitle>

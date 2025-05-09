@@ -18,7 +18,13 @@ interface Tool {
   is_premium: boolean;
 }
 
-export default function EditToolPage({ params }: { params: { id: string } }) {
+interface EditToolPageProps {
+  params: {
+    id: string
+  }
+}
+
+export default function EditToolPage({ params }: EditToolPageProps) {
   const router = useRouter();
   const [tool, setTool] = useState<Tool | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,31 +32,28 @@ export default function EditToolPage({ params }: { params: { id: string } }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const fetchTool = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tools/${params.id}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          credentials: 'include',
+        });
+        if (!response.ok) {
+          throw new Error('خطا در دریافت اطلاعات ابزار');
+        }
+        const data = await response.json();
+        setTool(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'خطا در دریافت اطلاعات ابزار');
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchTool();
   }, [params.id]);
-
-  const fetchTool = async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tools/${params.id}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('خطا در دریافت اطلاعات ابزار');
-      }
-
-      const data = await response.json();
-      setTool(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'خطا در دریافت اطلاعات ابزار');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

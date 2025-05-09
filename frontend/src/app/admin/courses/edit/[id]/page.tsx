@@ -21,7 +21,13 @@ interface Course {
   created_at: string;
 }
 
-export default function EditCoursePage({ params }: { params: { id: string } }) {
+interface EditCoursePageProps {
+  params: {
+    id: string
+  }
+}
+
+export default function EditCoursePage({ params }: EditCoursePageProps) {
   const router = useRouter();
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,31 +35,28 @@ export default function EditCoursePage({ params }: { params: { id: string } }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const fetchCourse = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses/${params.id}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          credentials: 'include'
+        });
+        if (!response.ok) {
+          throw new Error('خطا در دریافت اطلاعات دوره');
+        }
+        const data = await response.json();
+        setCourse(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'خطا در دریافت اطلاعات دوره');
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchCourse();
   }, [params.id]);
-
-  const fetchCourse = async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses/${params.id}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        throw new Error('خطا در دریافت اطلاعات دوره');
-      }
-
-      const data = await response.json();
-      setCourse(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'خطا در دریافت اطلاعات دوره');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,7 +116,7 @@ export default function EditCoursePage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full px-0">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">ویرایش دوره</h1>
       </div>

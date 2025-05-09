@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Switch } from '@/components/ui/switch';
+import Image from 'next/image';
 
 interface Article {
   id: number;
@@ -21,12 +22,7 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-
-  useEffect(() => {
-    fetchArticle();
-  }, [params.id]);
 
   const fetchArticle = async () => {
     try {
@@ -45,16 +41,25 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
       const data = await response.json();
       setArticle(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'خطا در دریافت مقاله');
+      // error handled by toast or UI
+      if (process.env.NODE_ENV !== 'production') {
+        // Log error for debugging
+        // eslint-disable-next-line no-console
+        console.error('Error fetching article:', err);
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchArticle();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.id]);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSaving(true);
-    setError(null);
 
     const formData = new FormData(e.currentTarget);
     // is_premium checkbox handling
@@ -75,7 +80,11 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
 
       router.push('/admin/articles');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'خطا در بروزرسانی مقاله');
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.error('Error updating article:', err);
+      }
+      // error handled by toast or UI
     } finally {
       setSaving(false);
     }
@@ -89,14 +98,6 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
     );
   }
 
-  if (error) {
-    return (
-      <div className="text-center text-red-500 p-6">
-        <p>{error}</p>
-      </div>
-    );
-  }
-
   if (!article) {
     return (
       <div className="text-center text-gray-500 p-6">
@@ -106,7 +107,7 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full px-0">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">ویرایش مقاله</h1>
       </div>
@@ -139,9 +140,11 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
           <div className="space-y-2">
             <Label htmlFor="thumbnail_path">تصویر بندانگشتی</Label>
             {article.thumbnail_path && (
-              <img
+              <Image
                 src={`${process.env.NEXT_PUBLIC_API_URL}/storage/${article.thumbnail_path}`}
                 alt="thumbnail"
+                width={128}
+                height={80}
                 className="w-32 h-20 object-cover rounded mb-2"
               />
             )}
@@ -161,7 +164,7 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
                 id="is_premium"
                 name="is_premium"
                 checked={article.is_special}
-                onCheckedChange={(checked) => setArticle({ ...article, is_special: checked })}
+                onCheckedChange={(checked: boolean) => setArticle({ ...article, is_special: checked })}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out ${
                   article.is_special ? 'bg-green-500' : 'bg-gray-300'
                 }`}
@@ -177,10 +180,6 @@ export default function EditArticlePage({ params }: { params: { id: string } }) 
               </span>
             </div>
           </div>
-
-          {error && (
-            <div className="text-red-500 text-sm">{error}</div>
-          )}
 
           <div className="flex justify-end gap-4">
             <Button

@@ -4,9 +4,8 @@ import { Star, Edit, Trash2, Eye } from 'lucide-react';
 
 export default function PrimaryContentPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full px-0">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">مدیریت محتوای ویژه</h1>
         <Button className="flex items-center">
           <Star className="w-4 h-4 ml-2" />
           افزودن محتوای ویژه

@@ -16,7 +16,9 @@ class Video extends Model
     ];
 
     protected $with = [
-        'sort'
+        'sort',
+        'likes',
+        'comments'
     ];
 
     public function course() {

@@ -16,18 +16,13 @@ interface TopArticleCardProps {
 }
 
 const getImageUrl = (thumbnail_path: string | undefined) => {
-  console.log('TopArticleCard - thumbnail_path:', thumbnail_path)
   if (!thumbnail_path) {
-    console.log('TopArticleCard - using default image')
     return '/images/default.jpg'
   }
   if (thumbnail_path.startsWith('http')) {
-    console.log('TopArticleCard - using absolute URL:', thumbnail_path)
     return thumbnail_path
   }
-  const url = `${process.env.NEXT_PUBLIC_API_URL}/storage/${thumbnail_path.replace(/^\\|^\//, '')}`
-  console.log('TopArticleCard - using storage URL:', url)
-  return url
+  return `${process.env.NEXT_PUBLIC_API_URL}/storage/${thumbnail_path.replace(/^\\|^\//, '')}`
 }
 
 export default function TopArticleCard({

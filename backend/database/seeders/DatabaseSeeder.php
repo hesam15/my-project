@@ -16,7 +16,8 @@ class DatabaseSeeder extends Seeder
             SubscribtionSeeder::class,
             UserSeeder::class,
             CourseSeeder::class,
-            CategorySeeder::class
+            CategorySeeder::class,
+            ConsulationSeeder::class
         ]);
     }
 }

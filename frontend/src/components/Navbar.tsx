@@ -1,10 +1,9 @@
 'use client';
 
-import { ArrowRightIcon } from '@heroicons/react/24/outline';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { Menu, User2 } from 'lucide-react';
+import { User2 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 interface NavbarProps {
@@ -21,12 +20,6 @@ export default function Navbar({ title, icon }: NavbarProps) {
 
   const isAdminSection = pathname.startsWith('/admin');
   const isAdminDashboard = pathname === '/admin';
-
-  console.log('Navbar Debug:', {
-    pathname,
-    isAdminSection,
-    isAdminDashboard
-  });
 
   const adminPageTitles: { [key: string]: string } = {
     '/admin': 'داشبورد مدیریت',
@@ -68,20 +61,10 @@ export default function Navbar({ title, icon }: NavbarProps) {
   const displayTitle = isAdminSection ? (adminPageTitles[pathname] || title) : title;
 
   return (
-    <nav className="fixed top-0 left-0 right-0 h-14 bg-white rounded-lg shadow-lg backdrop-blur-lg bg-opacity-80 w-full max-w-[calc(900px-2rem)] mx-auto z-50">
+    <nav className={`h-14 bg-white shadow-lg backdrop-blur-lg bg-opacity-80 ${isAdminSection ? '' : ''}`}>
       <div className="h-full flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
-          {isAdminSection ? (
-            <button
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors flex items-center justify-center"
-              aria-label="باز کردن منو"
-              onClick={() => document.dispatchEvent(new CustomEvent('open-admin-sidebar'))}
-            >
-              <Menu className="w-6 h-6" />
-            </button>
-          ) : (
-            icon
-          )}
+          {!isAdminSection && icon}
           <h1 className="text-lg font-bold">{displayTitle}</h1>
         </div>
         <div className="flex items-center gap-2 relative">
@@ -108,7 +91,7 @@ export default function Navbar({ title, icon }: NavbarProps) {
                       <Link href="/admin" className="block px-4 py-2 hover:bg-gray-50">داشبورد مدیریت</Link>
                     )}
                     {user.role === 'customer' && (
-                      <Link href="/profile" className="block px-4 py-2 hover:bg-gray-50">پنل کاربری</Link>
+                      <Link href="/customer" className="block px-4 py-2 hover:bg-gray-50">داشبورد من</Link>
                     )}
                     <button
                       onClick={handleLogout}

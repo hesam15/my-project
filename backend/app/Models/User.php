@@ -91,6 +91,10 @@ class User extends Authenticatable
         return $this->hasMany(ManagementTool::class);
     }
 
+    public function consultationReservations() {
+        return $this->hasMany(ConsultationReservation::class);
+    }
+
     protected static function boot() {
         parent::boot();
 

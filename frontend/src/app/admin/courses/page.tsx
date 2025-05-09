@@ -3,9 +3,11 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Eye, Pencil, Trash2, Star, Crown, Plus } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import { toast } from 'react-hot-toast';
+import Image from 'next/image';
 
 interface Course {
   id: number;
@@ -22,75 +24,35 @@ interface Course {
 export default function CoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    fetchCourses();
+  const fetchCourses = useCallback(async () => {
+    try {
+      const response = await courses.getAll()
+      setCourses(response.data)
+    } catch {
+      toast.error('خطا در دریافت لیست دوره‌ها')
+    } finally {
+      setLoading(false)
+    }
   }, []);
 
-  const fetchCourses = async () => {
-    setLoading(true);
-    setError(null);
+  useEffect(() => {
+    fetchCourses()
+  }, [fetchCourses]);
+
+  const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('خطا در دریافت دوره‌ها');
-      }
-
-      const data = await response.json();
-      setCourses(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'خطا در دریافت دوره‌ها');
-    } finally {
-      setLoading(false);
+      await courses.delete(id)
+      setCourses(courses.filter(course => course.id !== id))
+      toast.success('دوره با موفقیت حذف شد')
+    } catch {
+      toast.error('خطا در حذف دوره')
     }
-  };
-
-  const handleDelete = (id: number) => {
-    setDeleteId(id);
-    setConfirmOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!deleteId) return;
-    setConfirmOpen(false);
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses/${deleteId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('خطا در حذف دوره');
-      }
-
-      fetchCourses();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'خطا در حذف دوره');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }
 
   const handleSpecialToggle = async (id: number, isSpecial: boolean) => {
     setLoading(true);
-    setError(null);
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses/${id}/special`, {
         method: 'POST',
@@ -108,7 +70,7 @@ export default function CoursesPage() {
 
       fetchCourses();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'خطا در تغییر وضعیت دوره');
+      toast.error(err instanceof Error ? err.message : 'خطا در تغییر وضعیت دوره');
     } finally {
       setLoading(false);
     }
@@ -116,7 +78,6 @@ export default function CoursesPage() {
 
   const handlePremiumToggle = async (id: number, isPremium: boolean) => {
     setLoading(true);
-    setError(null);
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses/${id}/premium`, {
         method: 'POST',
@@ -134,7 +95,7 @@ export default function CoursesPage() {
 
       fetchCourses();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'خطا در تغییر وضعیت دوره');
+      toast.error(err instanceof Error ? err.message : 'خطا در تغییر وضعیت دوره');
     } finally {
       setLoading(false);
     }
@@ -144,14 +105,6 @@ export default function CoursesPage() {
     return (
       <div className="text-center p-6">
         <p>در حال بارگذاری...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center text-red-500 p-6">
-        <p>{error}</p>
       </div>
     );
   }
@@ -184,9 +137,11 @@ export default function CoursesPage() {
                   <tr key={course.id} className="border-b">
                     <td className="p-4">
                       {course.thumbnail_path && (
-                        <img
+                        <Image
                           src={`${process.env.NEXT_PUBLIC_API_URL}/storage/${course.thumbnail_path}`}
                           alt={course.title}
+                          width={80}
+                          height={48}
                           className="w-20 h-12 object-cover rounded"
                         />
                       )}
@@ -240,7 +195,7 @@ export default function CoursesPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDelete(course.id)}
+                          onClick={() => handleDelete(course.id.toString())}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -255,10 +210,10 @@ export default function CoursesPage() {
       </Card>
 
       <ConfirmDialog
-        open={confirmOpen}
+        open={false}
         message="آیا از حذف این دوره اطمینان دارید؟"
-        onConfirm={confirmDelete}
-        onCancel={() => setConfirmOpen(false)}
+        onConfirm={() => handleDelete('0')}
+        onCancel={() => {}}
       />
 
       <Button

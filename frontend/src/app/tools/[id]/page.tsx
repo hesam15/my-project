@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { managementTools, likes, comments } from '@/lib/api'
 import { toast } from 'sonner'
@@ -22,27 +22,27 @@ interface Comment {
   user?: { name: string }
 }
 
-interface ToolDetails {
-  id: number
-  name: string
-  description: string
-  tool_path: string
-  thumbnail_path: string
-  is_premium: number
-  category: string[]
-  likes_count: number
-  is_liked: boolean
-  comments_count: number
-  bookmarks_count: number
-  comments: Comment[]
-  created_at: string
+interface Tool {
+  id: number;
+  name: string;
+  description: string;
+  thumbnail_path: string;
+  is_premium: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
-export default function ToolDetailsPage() {
+interface ToolPageProps {
+  params: {
+    id: string;
+  };
+}
+
+export default function ToolPage({ params }: ToolPageProps) {
   const { id } = useParams()
   const router = useRouter()
   const { user } = useAuthContext()
-  const [tool, setTool] = useState<ToolDetails | null>(null)
+  const [tool, setTool] = useState<Tool | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isLiking, setIsLiking] = useState(false)
@@ -54,68 +54,47 @@ export default function ToolDetailsPage() {
     const fetchTool = async () => {
       try {
         setLoading(true)
-        console.log('Fetching tool with id:', id)
         const response = await managementTools.getOne(id as string)
-        console.log('Tool API response:', response)
         
         if (!response.data) {
           throw new Error('No tool data in response')
         }
 
         const toolData = response.data
-        console.log(toolData)
-        const formattedTool: ToolDetails = {
-          id: toolData.id,
-          name: toolData.name || 'بدون عنوان',
-          description: toolData.description || 'بدون توضیحات',
-          tool_path: toolData.tool_path || '',
-          thumbnail_path: toolData.thumbnail_path
-            ? `${process.env.NEXT_PUBLIC_API_URL}/storage/${toolData.thumbnail_path}`
-            : '/images/books.jpg',
-          is_premium: toolData.is_premium || 0,
-          category: Array.isArray(toolData.categories) ? toolData.categories.map((cat: any) => cat.name) : [],
-          likes_count: Array.isArray(toolData.likes) ? toolData.likes.length : 0,
-          is_liked: user && Array.isArray(toolData.likes) ? toolData.likes.some((like: any) => like.user_id === user.id) : false,
-          comments_count: Array.isArray(toolData.comments) ? toolData.comments.filter((comment: any) => comment.active).length : 0,
-          bookmarks_count: toolData.bookmarks_count || 0,
-          comments: Array.isArray(toolData.comments) ? toolData.comments : [],
-          created_at: toolData.created_at ? moment(toolData.created_at).locale('fa').format('DD MMMM YYYY') : 'نامشخص'
-        }
-
-        setTool(formattedTool)
-        setError(null)
+        setTool(toolData)
       } catch (error) {
-        console.error('Error fetching tool:', error)
-        setError('خطایی در دریافت اطلاعات ابزار رخ داد')
-        toast.error('خطا در دریافت اطلاعات ابزار')
-        router.push('/tools')
+        setError('خطا در بارگذاری ابزار')
+        toast.error('خطا در بارگذاری ابزار')
       } finally {
         setLoading(false)
       }
     }
 
     fetchTool()
-  }, [id, router, user])
+  }, [id])
 
   const handleLike = async () => {
     if (!tool || isLiking || !user) {
       if (!user) toast.error('برای لایک کردن باید وارد حساب کاربری شوید')
       return
     }
-
     setIsLiking(true)
     try {
       const response = await likes.toggle({
         likeable_id: tool.id,
-        likeable_type: 'App\\Models\\ManagementTool'
+        likeable_type: COMMENTABLE_TYPES.MANAGEMENT_TOOL,
       })
-
       if (response.data) {
-        setTool(prev => prev ? {
-          ...prev,
-          likes_count: prev.is_liked ? prev.likes_count - 1 : prev.likes_count + 1,
-          is_liked: !prev.is_liked
-        } : null)
+        setTool((prev) =>
+          prev
+            ? {
+                ...prev,
+                likes_count: prev.is_liked ? prev.likes_count - 1 : prev.likes_count + 1,
+                is_liked: !prev.is_liked,
+              }
+            : null
+        )
+        toast.success(prev => prev?.is_liked ? 'لایک حذف شد' : 'ابزار لایک شد')
       }
     } catch (error) {
       toast.error('خطا در ثبت لایک')
@@ -126,58 +105,34 @@ export default function ToolDetailsPage() {
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!user) {
-      toast.error('برای ارسال نظر باید وارد حساب کاربری شوید')
-      return
-    }
-    
     if (!commentTitle.trim() || !commentContent.trim()) {
-      toast.error('عنوان و محتوای نظر نمی‌تواند خالی باشد')
+      toast.error('لطفا عنوان و محتوای نظر را وارد کنید')
       return
     }
-    
-    if (isSubmittingComment || !tool) return
-  
+
     setIsSubmittingComment(true)
-    
     try {
       const payload = {
         title: commentTitle,
         content: commentContent,
-        commentable_type: 'App\\Models\\ManagementTool',
-        commentable_id: tool.id,
+        commentable_id: tool?.id,
+        commentable_type: COMMENTABLE_TYPES.TOOL
       }
-      console.log('Submitting comment with payload:', payload)
-      const response = await comments.create(payload)
-      console.log('Comment API response:', response.data)
 
-      const newComment: Comment = {
-        id: response.data.id,
-        user_id: user.id,
-        title: response.data.title,
-        content: response.data.content,
-        created_at: response.data.created_at,
-        active: response.data.active || false,
-        user: { name: user.name || 'کاربر' },
-      }
+      const response = await comments.create(payload)
+      const newComment = response.data
 
       setTool(prev => prev ? {
         ...prev,
         comments: [newComment, ...prev.comments],
-        comments_count: newComment.active ? prev.comments_count + 1 : prev.comments_count
+        comments_count: prev.comments_count + 1
       } : null)
-      
+
       setCommentTitle('')
       setCommentContent('')
-      toast.success('نظر شما با موفقیت ارسال شد و پس از تأیید ادمین نمایش داده خواهد شد.')
-    } catch (error: any) {
-      console.error('Error submitting comment:', error, {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      })
-      toast.error(error?.response?.data?.message || 'خطا در ارسال کامنت')
+      toast.success('نظر شما با موفقیت ثبت شد')
+    } catch (error) {
+      toast.error('خطا در ثبت نظر')
     } finally {
       setIsSubmittingComment(false)
     }
@@ -202,7 +157,7 @@ export default function ToolDetailsPage() {
     }
   }
 
-  const isLocked = tool?.is_premium === 1 && (!user || !user.is_premium)
+  const isLocked = tool?.is_premium && (!user || !user.is_premium)
 
   if (loading) {
     return <div className="p-4 text-center text-gray-500">در حال بارگذاری ابزار...</div>
@@ -240,7 +195,7 @@ export default function ToolDetailsPage() {
               alt={tool.name} 
               className="w-full h-48 object-cover mb-4 rounded-lg"
             />
-            {tool.is_premium === 1 && (
+            {tool.is_premium && (
               <span className="absolute top-4 left-4 bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-bold">
                 پریمیوم
               </span>
@@ -330,7 +285,7 @@ export default function ToolDetailsPage() {
           return comment.active
         })}
         commentableId={tool.id}
-        commentableType= {COMMENTABLE_TYPES.MANAGEMENT_TOOL}
+        commentableType={COMMENTABLE_TYPES.MANAGEMENT_TOOL}
         onCommentAdded={(newComment) => {
           setTool(prev => prev ? {
             ...prev,

@@ -11,8 +11,12 @@ class Consultation extends Model
         'consultant',
         'description',
         'license',
-        'time',
+        'consultation_time',
         'active_times',
         'thursdays_open'
     ];
+
+    public function reserves() {
+        return $this->hasMany(ConsultationReservation::class);
+    }
 }
