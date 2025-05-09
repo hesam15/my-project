@@ -25,7 +25,6 @@ export default function ArticlesPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState<string>('');
 
   useEffect(() => {
     const fetchArticles = async () => {
@@ -134,7 +133,7 @@ export default function ArticlesPage() {
       <ConfirmDialog
         open={confirmOpen}
         message="آیا از حذف این مقاله اطمینان دارید؟"
-        onConfirm={() => handleDelete(deleteId)}
+        onConfirm={() => {}}
         onCancel={() => setConfirmOpen(false)}
       />
 

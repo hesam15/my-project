@@ -2,8 +2,9 @@
 
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 
-export default function Loading() {
+function LoadingContent() {
   const searchParams = useSearchParams()
   const pageTitle = searchParams.get('page') || 'صفحه اصلی'
 
@@ -32,5 +33,13 @@ export default function Loading() {
         V1.0.0
       </div>
     </div>
+  )
+}
+
+export default function Loading() {
+  return (
+    <Suspense fallback={<div>در حال بارگذاری...</div>}>
+      <LoadingContent />
+    </Suspense>
   )
 } 
