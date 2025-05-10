@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { managementTools, likes, comments } from '@/lib/api'
-import { toast } from 'sonner'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { ShareIcon, HeartIcon, ChatBubbleLeftIcon, BookmarkIcon, HeartIcon as HeartIconSolid } from '@heroicons/react/24/outline'
 import { toFarsiNumber } from '@/utils/numbers'
@@ -11,6 +10,7 @@ import moment from 'jalali-moment'
 import Comments from '@/components/comments/Comments'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { COMMENTABLE_TYPES } from '@/constants/models'
+import { useAlert } from '@/contexts/AlertContext'
 
 interface Comment {
   id: number
@@ -49,6 +49,7 @@ export default function ToolPage({ params }: ToolPageProps) {
   const [commentTitle, setCommentTitle] = useState('')
   const [commentContent, setCommentContent] = useState('')
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
+  const { showAlert } = useAlert()
 
   useEffect(() => {
     const fetchTool = async () => {
@@ -62,9 +63,9 @@ export default function ToolPage({ params }: ToolPageProps) {
 
         const toolData = response.data
         setTool(toolData)
-      } catch (error) {
-        setError('خطا در بارگذاری ابزار')
-        toast.error('خطا در بارگذاری ابزار')
+      } catch (error: any) {
+        setError(error.message || 'خطا در دریافت اطلاعات ابزار')
+        showAlert(error.message || 'خطا در دریافت اطلاعات ابزار', 'danger')
       } finally {
         setLoading(false)
       }
@@ -75,7 +76,7 @@ export default function ToolPage({ params }: ToolPageProps) {
 
   const handleLike = async () => {
     if (!tool || isLiking || !user) {
-      if (!user) toast.error('برای لایک کردن باید وارد حساب کاربری شوید')
+      if (!user) showAlert('برای لایک کردن باید وارد حساب کاربری شوید', 'danger')
       return
     }
     setIsLiking(true)
@@ -94,10 +95,10 @@ export default function ToolPage({ params }: ToolPageProps) {
               }
             : null
         )
-        toast.success(prev => prev?.is_liked ? 'لایک حذف شد' : 'ابزار لایک شد')
+        showAlert(prev => prev?.is_liked ? 'لایک حذف شد' : 'ابزار لایک شد', 'success')
       }
     } catch (error) {
-      toast.error('خطا در ثبت لایک')
+      showAlert('خطا در ثبت لایک', 'danger')
     } finally {
       setIsLiking(false)
     }
@@ -106,7 +107,7 @@ export default function ToolPage({ params }: ToolPageProps) {
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!commentTitle.trim() || !commentContent.trim()) {
-      toast.error('لطفا عنوان و محتوای نظر را وارد کنید')
+      showAlert('لطفا عنوان و محتوای نظر را وارد کنید', 'danger')
       return
     }
 
@@ -130,9 +131,9 @@ export default function ToolPage({ params }: ToolPageProps) {
 
       setCommentTitle('')
       setCommentContent('')
-      toast.success('نظر شما با موفقیت ثبت شد')
+      showAlert('نظر شما با موفقیت ثبت شد', 'success')
     } catch (error) {
-      toast.error('خطا در ثبت نظر')
+      showAlert('خطا در ثبت نظر', 'danger')
     } finally {
       setIsSubmittingComment(false)
     }
@@ -148,12 +149,12 @@ export default function ToolPage({ params }: ToolPageProps) {
         })
       } else if (navigator.clipboard) {
         await navigator.clipboard.writeText(window.location.href)
-        toast.success('لینک ابزار کپی شد')
+        showAlert('لینک ابزار کپی شد', 'success')
       } else {
-        toast.error('متاسفانه امکان اشتراک‌گذاری در این مرورگر وجود ندارد')
+        showAlert('متاسفانه امکان اشتراک‌گذاری در این مرورگر وجود ندارد', 'danger')
       }
     } catch (error) {
-      toast.error('خطا در اشتراک‌گذاری ابزار')
+      showAlert('خطا در اشتراک‌گذاری ابزار', 'danger')
     }
   }
 

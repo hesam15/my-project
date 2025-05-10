@@ -1,135 +1,134 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { useAlert } from '@/contexts/AlertContext';
 
-export default function NewCourse() {
+export default function NewCoursePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [isPremium, setIsPremium] = useState(false);
+  const [thumbnail, setThumbnail] = useState<File | null>(null);
+  const { showAlert } = useAlert();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
-
     try {
       const formData = new FormData(e.currentTarget);
-      const data = {
-        title: formData.get('title'),
-        description: formData.get('description'),
-        price: formData.get('price'),
-        is_premium: isPremium,
-      };
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error('خطا در ایجاد دوره');
+      formData.append('is_premium', isPremium.toString());
+      if (thumbnail) {
+        formData.append('thumbnail_path', thumbnail);
       }
-
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      showAlert('دوره با موفقیت ایجاد شد', 'success');
       router.push('/admin/courses');
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'خطا در ایجاد دوره');
+    } catch {
+      showAlert('خطا در ایجاد دوره', 'danger');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6 w-full px-0">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {error && (
-          <div className="p-4 bg-red-50 text-red-700 rounded-lg">
-            {error}
-          </div>
-        )}
+    <Suspense fallback={<div>در حال بارگذاری...</div>}>
+      <div className="space-y-6 w-full px-0 py-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>ایجاد دوره جدید</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">عنوان</Label>
+                <Input
+                  id="title"
+                  name="title"
+                  required
+                />
+              </div>
 
-        <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-            عنوان دوره
-          </label>
-          <input
-            type="text"
-            id="title"
-            name="title"
-            required
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-          />
-        </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">توضیحات</Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  required
+                  className="min-h-[200px]"
+                />
+              </div>
 
-        <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-            توضیحات
-          </label>
-          <textarea
-            id="description"
-            name="description"
-            rows={4}
-            required
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-          />
-        </div>
+              <div className="space-y-2">
+                <Label htmlFor="thumbnail_path">تصویر بندانگشتی</Label>
+                <input
+                  type="file"
+                  id="thumbnail_path"
+                  name="thumbnail_path"
+                  accept="image/*"
+                  onChange={(e) => setThumbnail(e.target.files?.[0] || null)}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                />
+                {thumbnail && (
+                  <div className="mt-2">
+                    <img
+                      src={URL.createObjectURL(thumbnail)}
+                      alt="Preview"
+                      className="w-32 h-32 object-cover rounded-lg"
+                    />
+                  </div>
+                )}
+              </div>
 
-        <div>
-          <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
-            قیمت (تومان)
-          </label>
-          <input
-            type="number"
-            id="price"
-            name="price"
-            required
-            min="0"
-            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-          />
-        </div>
+              <div className="space-y-2">
+                <Label htmlFor="is_premium">پریمیوم</Label>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="is_premium"
+                    name="is_premium"
+                    checked={isPremium}
+                    onCheckedChange={setIsPremium}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out ${
+                      isPremium ? 'bg-green-500' : 'bg-gray-300'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out ${
+                        isPremium ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </Switch>
+                  <span className={isPremium ? 'text-green-500' : 'text-gray-500'}>
+                    {isPremium ? 'فعال' : 'غیرفعال'}
+                  </span>
+                </div>
+              </div>
 
-        <div className="space-y-2">
-          <label htmlFor="is_premium" className="block text-sm font-medium text-gray-700 mb-1">
-            پریمیوم
-          </label>
-          <div className="flex items-center space-x-2">
-            <div className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out">
-              <input
-                type="checkbox"
-                id="is_premium"
-                name="is_premium"
-                checked={isPremium}
-                onChange={(e) => setIsPremium(e.target.checked)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out ${
-                  isPremium ? 'bg-green-500' : 'bg-gray-300'
-                } appearance-none cursor-pointer`}
-              />
-              <span
-                className={`absolute inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out ${
-                  isPremium ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </div>
-            <span className={isPremium ? 'text-green-500' : 'text-gray-500'}>
-              {isPremium ? 'فعال' : 'غیرفعال'}
-            </span>
-          </div>
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-2 px-4 bg-primary text-white rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50"
-        >
-          {loading ? 'در حال ثبت...' : 'ثبت دوره'}
-        </button>
-      </form>
-    </div>
+              <div className="flex justify-end space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push('/admin/courses')}
+                >
+                  انصراف
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? 'در حال ذخیره...' : 'ذخیره'}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </Suspense>
   );
 }

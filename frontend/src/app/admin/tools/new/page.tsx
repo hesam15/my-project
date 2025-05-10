@@ -40,7 +40,7 @@ export default function NewTool() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="w-full px-4 py-6 space-y-6">
       <h1 className="text-2xl font-bold">افزودن ابزار جدید</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -134,7 +134,7 @@ export default function NewTool() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2 px-4 bg-primary text-white rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50"
+          className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50"
         >
           {loading ? 'در حال ثبت...' : 'ثبت ابزار'}
         </button>

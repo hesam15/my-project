@@ -8,6 +8,7 @@ import { ClockIcon } from '@heroicons/react/24/outline'
 import { toPersianNumbers } from '@/utils/numbers'
 import { format } from 'date-fns-jalali'
 import { faIR } from 'date-fns-jalali/locale'
+import { useAlert } from '@/contexts/AlertContext'
 
 interface Consultation {
   id: number;
@@ -44,6 +45,7 @@ export default function ConsultationPage() {
   const [consultants, setConsultants] = useState<Consultant[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
+  const { showAlert } = useAlert()
 
   // Fetch consultants from API
   useEffect(() => {

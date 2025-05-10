@@ -8,12 +8,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { toast } from 'sonner';
+import { useAlert } from '@/contexts/AlertContext';
 
 export default function NewArticlePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
+  const [thumbnail, setThumbnail] = useState<File | null>(null);
+  const { showAlert } = useAlert();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -21,15 +23,18 @@ export default function NewArticlePage() {
     try {
       const formData = new FormData(e.currentTarget);
       formData.append('is_premium', isPremium.toString());
+      if (thumbnail) {
+        formData.append('thumbnail_path', thumbnail);
+      }
       await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/posts`, {
         method: 'POST',
         credentials: 'include',
         body: formData,
       });
-      toast.success('مقاله با موفقیت ایجاد شد');
+      showAlert('مقاله با موفقیت ایجاد شد', 'success');
       router.push('/admin/articles');
     } catch {
-      toast.error('خطا در ایجاد مقاله');
+      showAlert('خطا در ایجاد مقاله', 'danger');
     } finally {
       setLoading(false);
     }
@@ -70,8 +75,18 @@ export default function NewArticlePage() {
                   id="thumbnail_path"
                   name="thumbnail_path"
                   accept="image/*"
+                  onChange={(e) => setThumbnail(e.target.files?.[0] || null)}
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
                 />
+                {thumbnail && (
+                  <div className="mt-2">
+                    <img
+                      src={URL.createObjectURL(thumbnail)}
+                      alt="Preview"
+                      className="w-32 h-32 object-cover rounded-lg"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">

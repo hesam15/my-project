@@ -3,13 +3,22 @@
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { User2 } from 'lucide-react';
+import { User2, Home } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Menu, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface NavbarProps {
   title: string;
   icon?: React.ReactNode;
 }
+
+const links = [
+  { href: '/', label: 'خانه' },
+  { href: '/about', label: 'درباره ما' },
+  { href: '/contact', label: 'تماس با ما' },
+];
 
 export default function Navbar({ title, icon }: NavbarProps) {
   const router = useRouter();
@@ -17,6 +26,12 @@ export default function Navbar({ title, icon }: NavbarProps) {
   const { user, logout } = useAuthContext();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const isAdminSection = pathname.startsWith('/admin');
   const isAdminDashboard = pathname === '/admin';
@@ -32,6 +47,11 @@ export default function Navbar({ title, icon }: NavbarProps) {
     '/admin/articles/new': 'افزودن مقاله',
     '/admin/users/new': 'افزودن کاربر',
     '/admin/courses/new': 'افزودن دوره',
+    '/admin/tools': 'مدیریت ابزارها',
+    '/admin/consultations': 'مدیریت مشاوره‌ها',
+    '/admin/consultations/reservations': 'مدیریت رزرواسیون‌ها',
+    '/admin/consultations/new': 'افزودن مشاوره',
+    '/admin/consultations/reservations/new': 'افزودن رزرواسیون',
   };
 
   const handleLogout = async () => {
@@ -60,10 +80,20 @@ export default function Navbar({ title, icon }: NavbarProps) {
 
   const displayTitle = isAdminSection ? (adminPageTitles[pathname] || title) : title;
 
+  // Determine navbar classes based on admin section
+  const navbarClass = isAdminSection
+    ? `fixed top-0 left-0 right-80 h-16 bg-white border-b ${mounted ? 'z-40' : 'z-50'}`
+    : `fixed top-0 left-0 right-0 w-full h-16 bg-white border-b ${mounted ? 'z-40' : 'z-50'}`;
+
   return (
-    <nav className={`h-14 bg-white shadow-lg backdrop-blur-lg bg-opacity-80 ${isAdminSection ? '' : ''}`}>
-      <div className="h-full flex items-center justify-between px-4">
+    <nav className={navbarClass}>
+      <div className="h-full px-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
+          {isAdminSection && (
+            <Link href="/" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <Home className="w-5 h-5" />
+            </Link>
+          )}
           {!isAdminSection && icon}
           <h1 className="text-lg font-bold">{displayTitle}</h1>
         </div>

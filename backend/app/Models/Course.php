@@ -44,7 +44,9 @@ class Course extends Model
         return $this->morphMany(Comment::class, 'commentable');
     }
 
-    public function videoSorts() {
-        return $this->hasMany(CourseVideoSort::class);
+    public function getSortedVideosAttribute() {
+        return $this->videos()
+            ->orderBy('sort', 'asc')
+            ->get();
     }
 }

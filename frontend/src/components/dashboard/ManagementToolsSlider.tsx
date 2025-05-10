@@ -8,10 +8,10 @@ import 'swiper/css/navigation'
 import 'swiper/css/pagination'
 import { useEffect, useState } from 'react'
 import { managementTools } from '@/lib/api'
-import { toast } from 'sonner'
 import moment from 'jalali-moment'
 import { useRouter } from 'next/navigation'
 import { useAuthContext } from '@/contexts/AuthContext'
+import { useAlert } from '@/contexts/AlertContext'
 
 interface ManagementTool {
   id: number
@@ -30,7 +30,7 @@ export default function ManagementToolsSlider() {
   const { user } = useAuthContext()
   const [tools, setTools] = useState<ManagementTool[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { showAlert } = useAlert()
 
   useEffect(() => {
     const fetchTools = async () => {
@@ -47,8 +47,7 @@ export default function ManagementToolsSlider() {
         }
       } catch (err) {
         console.error('Error fetching management tools:', err)
-        setError('خطا در دریافت ابزارهای مدیریتی')
-        toast.error('خطا در دریافت ابزارهای مدیریتی')
+        showAlert('خطا در دریافت ابزارهای مدیریتی', 'danger')
       } finally {
         setLoading(false)
       }
@@ -66,15 +65,6 @@ export default function ManagementToolsSlider() {
       <div className="w-full space-y-4">
         <h2 className="text-lg font-bold text-white">ابزار مدیریت</h2>
         <div className="text-white">در حال بارگذاری...</div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="w-full space-y-4">
-        <h2 className="text-lg font-bold text-white">ابزار مدیریت</h2>
-        <div className="text-red-500">{error}</div>
       </div>
     )
   }

@@ -3,12 +3,16 @@
 import { useState, useEffect, useRef, Suspense } from 'react'
 import Image from 'next/image'
 import { StarIcon, ClockIcon } from '@heroicons/react/24/solid'
-import { toPersianNumbers } from '@/utils/numbers'
 import { format, parse } from 'date-fns-jalali'
 import { faIR } from 'date-fns-jalali/locale'
 import { useRouter, useParams } from 'next/navigation'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { toast } from 'sonner'
+import dayjs from 'dayjs'
+import jalaliday from 'jalaliday'
+import "@majidh1/jalalidatepicker/dist/jalalidatepicker.min.css";
+import { useAlert } from '@/contexts/AlertContext'
+dayjs.extend(jalaliday);
 
 // Interface for Consultant Data
 interface ConsultantData {
@@ -27,7 +31,6 @@ interface ConsultantData {
 // Interface for User Data
 interface UserData {
   id: number
-  email: string
   name?: string
 }
 
@@ -46,29 +49,230 @@ const cleanDateString = (dateStr: string): string => {
   return cleaned
 }
 
+// Add type for JalaliDateInput props
+interface JalaliDateInputProps {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  minDate?: string;
+  maxDate?: string;
+  onlyDate?: boolean;
+  onlyTime?: boolean;
+  placeholder?: string;
+}
+
+const JalaliDateInput = ({ value, onChange, minDate = "today", maxDate, onlyDate = true, onlyTime = false, placeholder = "تاریخ را انتخاب کنید" }: JalaliDateInputProps) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const initializeDatePicker = async () => {
+      try {
+        await import('@majidh1/jalalidatepicker');
+        if (window.jalaliDatepicker && inputRef.current) {
+          window.jalaliDatepicker.startWatch({
+            minDate,
+            maxDate,
+            time: !onlyDate,
+          });
+
+          // Add input event listener
+          const input = inputRef.current;
+          const handleInputChange = (e: Event) => {
+            const target = e.target as HTMLInputElement;
+            console.log('Input value changed:', target.value);
+            const event = {
+              target: { value: target.value }
+            } as React.ChangeEvent<HTMLInputElement>;
+            onChange(event);
+          };
+
+          input.addEventListener('input', handleInputChange);
+
+          // Cleanup
+          return () => {
+            input.removeEventListener('input', handleInputChange);
+          };
+        }
+      } catch (err) {
+        console.error('Error loading jalaliDatepicker:', err);
+      }
+    };
+
+    initializeDatePicker();
+  }, [minDate, maxDate, onlyDate, onChange]);
+
+  return (
+    <input
+      ref={inputRef}
+      type="text"
+      data-jdp
+      data-jdp-only-date={onlyDate ? true : undefined}
+      data-jdp-only-time={onlyTime ? true : undefined}
+      data-jdp-min-date={minDate}
+      data-jdp-max-date={maxDate}
+      placeholder={placeholder}
+      value={value}
+      onChange={onChange}
+      readOnly
+      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+    />
+  );
+};
+
+// Fix for the CSS import error (should be in a separate .d.ts file, but for now):
+declare module '@majidh1/jalalidatepicker/dist/jalalidatepicker.min.css';
+
+// Reusable date/time picker component
+interface ConsultationDateTimePickerProps {
+  consultantId: number;
+  selectedDate: string;
+  setSelectedDate: (date: string) => void;
+  selectedTime: string | null;
+  setSelectedTime: (time: string | null) => void;
+  minDate?: string;
+  maxDate?: string;
+}
+
+const ConsultationDateTimePicker = ({
+  consultantId,
+  selectedDate,
+  setSelectedDate,
+  selectedTime,
+  setSelectedTime,
+  minDate = 'today',
+  maxDate = '1403/12/29',
+}: ConsultationDateTimePickerProps) => {
+  const [timeButtons, setTimeButtons] = useState<{ time: string; disabled: boolean }[]>([]);
+  const [reservedTimes, setReservedTimes] = useState<string[]>([]);
+
+  useEffect(() => {
+    setSelectedTime(null);
+  }, [selectedDate, setSelectedTime]);
+
+  useEffect(() => {
+    const fetchAvailableTimes = async () => {
+      if (!consultantId || !selectedDate) {
+        setTimeButtons([]);
+        setReservedTimes([]);
+        return;
+      }
+      try {
+        const url = `${process.env.NEXT_PUBLIC_API_URL}/api/reservations/available-times/${consultantId}?date=${selectedDate}`;
+        const response = await fetch(url, {
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+        });
+        let message = '';
+        try {
+          const data = await response.clone().json();
+          if (data && data.message) message = data.message;
+        } catch {}
+        if (response.ok && message) showAlert(message, 'success');
+        else if (response.status >= 400 && response.status < 500 && message) showAlert(message, 'info');
+        else if (response.status >= 500) showAlert('خطای سرور! لطفا بعدا تلاش کنید.', 'danger');
+        const result = await response.json();
+        let times: string[] = [];
+        // تشخیص امروز بودن تاریخ انتخابی
+        const [jy, jm, jd] = selectedDate.split('/').map(Number);
+        const todayJalali = dayjs().calendar('jalali');
+        const isToday = jy === todayJalali.year() && jm === todayJalali.month() + 1 && jd === todayJalali.date();
+        if (isToday) {
+          times = [
+            ...(Array.isArray(result.lastTimes) ? result.lastTimes : []),
+            ...(Array.isArray(result.availabelTimes)
+              ? result.availabelTimes
+              : Object.values(result.availabelTimes || {})),
+          ];
+        } else {
+          times = Array.isArray(result.availabelTimes)
+            ? result.availabelTimes
+            : Object.values(result.availabelTimes || {});
+        }
+        setTimeButtons(
+          times.map((time: string) => ({
+            time,
+            disabled: (result.reservedTimes || []).includes(time),
+          }))
+        );
+        setReservedTimes(result.reservedTimes || []);
+        setSelectedTime(null);
+      } catch (error) {
+        setTimeButtons([]);
+        setReservedTimes([]);
+        setSelectedTime(null);
+      }
+    };
+    fetchAvailableTimes();
+  }, [consultantId, selectedDate, setSelectedTime]);
+
+  return (
+    <>
+      <div className="relative mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">تاریخ مراجعه</label>
+        <JalaliDateInput
+          value={selectedDate}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSelectedDate(e.target.value)}
+          minDate={minDate}
+          maxDate={maxDate}
+          onlyDate
+        />
+      </div>
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <ClockIcon className="h-5 w-5 text-blue-500" />
+          <h3 className="text-lg font-semibold text-gray-900">ساعت مراجعه</h3>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          {timeButtons.length > 0 ? (
+            timeButtons.map(({ time, disabled }) => (
+              <button
+                type="button"
+                key={time}
+                onClick={() => !disabled && setSelectedTime(time)}
+                disabled={disabled}
+                className={`w-full py-2 rounded-lg border text-center transition-colors ${
+                  selectedTime === time
+                    ? 'bg-blue-500 text-white border-blue-500'
+                    : disabled
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-white text-gray-800 border-gray-300 hover:bg-blue-50'
+                }`}
+              >
+                {time}
+              </button>
+            ))
+          ) : (
+            <div className="col-span-3 text-center text-gray-400">زمانی موجود نیست</div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+};
+
 function ConsultantPageContent() {
   const router = useRouter()
   const { slug } = useParams()
   const { user } = useAuthContext()
   const isAuthenticated = !!user
   const [consultantData, setConsultantData] = useState<ConsultantData | null>(null)
-  const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy/MM/dd', { locale: faIR }))
-  const [availableTimes, setAvailableTimes] = useState<string[]>([])
-  const [reservedTimes, setReservedTimes] = useState<string[]>([])
+  const [selectedDate, setSelectedDate] = useState<string>('')
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
-  const dateInputRef = useRef<HTMLInputElement>(null)
-  const calendarRef = useRef<HTMLDivElement>(null)
+  const { showAlert } = useAlert();
 
-  // Log auth state, selectedDate, and consultantData for debugging
+  // Set selectedDate from jalalidatepicker input on mount if empty
   useEffect(() => {
-    console.log('Auth state:', { user, isAuthenticated })
-    console.log('Selected date:', selectedDate)
-    console.log('Consultant data:', consultantData)
-    console.log('Reserved times:', reservedTimes)
-  }, [user, isAuthenticated, selectedDate, consultantData, reservedTimes])
+    if (!selectedDate) {
+      const input = document.querySelector('input[data-jdp]') as HTMLInputElement | null;
+      if (input && input.value) {
+        setSelectedDate(input.value);
+      }
+    }
+  }, [selectedDate]);
 
   // Fetch consultant data
   useEffect(() => {
@@ -77,8 +281,7 @@ function ConsultantPageContent() {
         if (!process.env.NEXT_PUBLIC_API_URL) {
           throw new Error('NEXT_PUBLIC_API_URL is not defined')
         }
-        const url = `${process.env.NEXT_PUBLIC_API_URL}/api/consultants/${slug}`
-
+        const url = `${process.env.NEXT_PUBLIC_API_URL}/api/consultations/${slug}`
         const response = await fetch(url, {
           method: 'GET',
           headers: {
@@ -87,12 +290,14 @@ function ConsultantPageContent() {
           },
           credentials: 'include',
         })
-
-        if (!response.ok) {
-          const errorText = await response.text()
-          throw new Error(`خطای سرور: ${response.status} ${response.statusText}`)
-        }
-
+        let message = '';
+        try {
+          const data = await response.clone().json();
+          if (data && data.message) message = data.message;
+        } catch {}
+        if (response.ok && message) showAlert(message, 'success');
+        else if (response.status >= 400 && response.status < 500 && message) showAlert(message, 'info');
+        else if (response.status >= 500) showAlert('خطای سرور! لطفا بعدا تلاش کنید.', 'danger');
         const result = await response.json()
         setConsultantData(result)
       } catch (error) {
@@ -101,119 +306,8 @@ function ConsultantPageContent() {
         toast.error(errorMessage)
       }
     }
-
     fetchConsultantData()
   }, [slug])
-
-  // Fetch reserved times
-  useEffect(() => {
-    const fetchReservedTimes = async () => {
-      if (!consultantData || !selectedDate) return
-
-      try {
-        if (!process.env.NEXT_PUBLIC_API_URL) {
-          throw new Error('NEXT_PUBLIC_API_URL is not defined')
-        }
-        const url = `${process.env.NEXT_PUBLIC_API_URL}/api/consultations/reserved-times?consultant_id=${consultantData.id}&date=${selectedDate}`
-
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-        })
-
-        if (!response.ok) {
-          throw new Error(`خطای سرور: ${response.status} ${response.statusText}`)
-        }
-
-        const result = await response.json()
-        setReservedTimes(result)
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'خطای ناشناخته در بارگذاری زمان‌های رزرو شده'
-        toast.error(errorMessage)
-      }
-    }
-
-    fetchReservedTimes()
-  }, [consultantData, selectedDate])
-
-  // Initialize jalaliDatepicker and handle click outside
-  useEffect(() => {
-    let isMounted = true
-
-    const initializeDatePicker = async () => {
-      try {
-        await import('@majidh1/jalalidatepicker')
-        await import('@majidh1/jalalidatepicker/dist/jalalidatepicker.min.css')
-
-        if (!isMounted || !dateInputRef.current) return
-
-        const maxDate = new Date()
-        maxDate.setMonth(maxDate.getMonth() + 1)
-        window.jalaliDatepicker.startWatch({
-          minDate: 'today',
-          maxDate: format(maxDate, 'yyyy/MM/dd', { locale: faIR }),
-          time: false,
-          onSelect: (unix: number) => {
-            if (dateInputRef.current) {
-              const jalaliDate = format(new Date(unix), 'yyyy/MM/dd', { locale: faIR })
-              handleDateSelect(jalaliDate)
-            }
-          },
-        })
-      } catch (err) {
-        console.error('Error loading jalaliDatepicker:', err)
-      }
-    }
-
-    initializeDatePicker()
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        calendarRef.current &&
-        !calendarRef.current.contains(event.target as Node) &&
-        dateInputRef.current &&
-        !dateInputRef.current.contains(event.target as Node)
-      ) {
-        setIsCalendarOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      isMounted = false
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [])
-
-  // Initialize time slots and DatePickerManager
-  useEffect(() => {
-    if (!consultantData) return
-
-    const initializeTimeSlots = () => {
-      const times = generateTimeSlots()
-      console.log('Generated available times:', times)
-      setAvailableTimes(times)
-    }
-
-    initializeTimeSlots()
-
-    const initializeDatePickerManager = async () => {
-      try {
-        const { default: DatePickerManager } = await import('@/utils/DatePickerManager')
-        const manager = new DatePickerManager()
-        if (dateInputRef.current) {
-          manager.initializeDefaultDatePicker(dateInputRef.current)
-        }
-      } catch (err) {
-        console.error('Error initializing DatePickerManager:', err)
-      }
-    }
-    initializeDatePickerManager()
-  }, [consultantData])
 
   // Handle reservation submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -236,13 +330,13 @@ function ConsultantPageContent() {
       }
 
       const reservationData = {
-        consultant_id: consultantData.id,
+        consultation_id: consultantData.id,
         date: selectedDate,
         time: selectedTime,
-        title: consultantData.title
+        user_id: user.id,
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/consultations`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reservations`, {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
@@ -251,14 +345,14 @@ function ConsultantPageContent() {
         credentials: 'include',
         body: JSON.stringify(reservationData)
       })
-
-      if (!response.ok) {
-        throw new Error(`خطای سرور: ${response.status} ${response.statusText}`)
-      }
-
-      const result = await response.json()
-      toast.success('مشاوره با موفقیت رزرو شد')
-      router.push('/dashboard/consultations')
+      let message = '';
+      try {
+        const data = await response.clone().json();
+        if (data && data.message) message = data.message;
+      } catch {}
+      if (response.ok && message) showAlert(message, 'success');
+      else if (response.status >= 400 && response.status < 500 && message) showAlert(message, 'info');
+      else if (response.status >= 500) showAlert('خطای سرور! لطفا بعدا تلاش کنید.', 'danger');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'خطای ناشناخته در رزرو مشاوره'
       toast.error(errorMessage)
@@ -267,116 +361,13 @@ function ConsultantPageContent() {
     }
   }
 
-  // Generate time slots based on active_times
-  const generateTimeSlots = () => {
-    if (!consultantData?.active_times) return []
-
-    const times: string[] = []
-    const activeTimes = consultantData.active_times
-
-    activeTimes.forEach((time: string) => {
-      const [start, end] = time.split('-').map(t => t.trim())
-      const startTime = new Date(`2000-01-01T${start}`)
-      const endTime = new Date(`2000-01-01T${end}`)
-
-      while (startTime < endTime) {
-        const timeString = startTime.toLocaleTimeString('fa-IR', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        })
-        times.push(timeString)
-        startTime.setMinutes(startTime.getMinutes() + 30)
-      }
-    })
-
-    return times
-  }
-
   const handleDateSelect = (date: string) => {
     setSelectedDate(date)
     setSelectedTime(null)
   }
 
   const handleTimeSelect = (time: string) => {
-    if (reservedTimes.includes(time)) {
-      toast.error('این زمان قبلاً رزرو شده است')
-      return
-    }
     setSelectedTime(time)
-  }
-
-  const JalaliCalendar = () => {
-    const today = new Date()
-    const maxDate = new Date()
-    maxDate.setMonth(maxDate.getMonth() + 1)
-    const [currentMonth, setCurrentMonth] = useState({
-      jy: parseInt(format(today, 'yyyy', { locale: faIR })),
-      jm: parseInt(format(today, 'MM', { locale: faIR })),
-    })
-
-    const daysInMonth = 31 // Adjust based on Jalali month
-    const firstDayOfMonth = parse(`${currentMonth.jy}/${currentMonth.jm}/1`, 'yyyy/MM/dd', new Date(), { locale: faIR })
-    const firstDayOfWeek = firstDayOfMonth.getDay()
-
-    const days: JSX.Element[] = []
-
-    for (let i = 0; i < firstDayOfWeek; i++) {
-      days.push(<div key={`empty-${i}`} className="h-10" />)
-    }
-
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = parse(`${currentMonth.jy}/${currentMonth.jm}/${day}`, 'yyyy/MM/dd', new Date(), { locale: faIR })
-      const isDisabled =
-        date < today ||
-        date > maxDate ||
-        (consultantData && !consultantData.thursdays_open && date.getDay() === 4)
-
-      days.push(
-        <button
-          key={day}
-          onClick={() => !isDisabled && handleDateSelect(format(date, 'yyyy/MM/dd', { locale: faIR }))}
-          disabled={isDisabled}
-          className={`h-10 flex items-center justify-center rounded-lg text-sm
-            ${isDisabled ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-blue-100 text-gray-800'}
-            ${selectedDate === format(date, 'yyyy/MM/dd', { locale: faIR }) ? 'bg-blue-500 text-white' : ''}`}
-        >
-          {toPersianNumbers(day.toString())}
-        </button>
-      )
-    }
-
-    return (
-      <div ref={calendarRef} className="bg-white p-4 rounded-lg shadow-lg border border-gray-100 w-72">
-        <div className="flex justify-between mb-4">
-          <button
-            onClick={() => setCurrentMonth((prev) => ({
-              jy: prev.jm === 1 ? prev.jy - 1 : prev.jy,
-              jm: prev.jm === 1 ? 12 : prev.jm - 1,
-            }))}
-            className="px-2 py-1 bg-gray-100 rounded"
-          >
-            قبلی
-          </button>
-          <span>{toPersianNumbers(`${currentMonth.jy}/${currentMonth.jm}`)}</span>
-          <button
-            onClick={() => setCurrentMonth((prev) => ({
-              jy: prev.jm === 12 ? prev.jy + 1 : prev.jy,
-              jm: prev.jm === 12 ? 1 : prev.jm + 1,
-            }))}
-            className="px-2 py-1 bg-gray-100 rounded"
-          >
-            بعدی
-          </button>
-        </div>
-        <div className="grid grid-cols-7 gap-2 text-center">
-          {['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'].map((day, i) => (
-            <div key={i} className="text-sm font-medium text-gray-600">{day}</div>
-          ))}
-          {days}
-        </div>
-      </div>
-    )
   }
 
   if (error) {
@@ -421,11 +412,11 @@ function ConsultantPageContent() {
           <div className="flex gap-4 text-gray-500">
             <div className="flex items-center gap-1">
               <StarIcon className="w-5 h-5 text-yellow-400" />
-              <span>{toPersianNumbers('4.5')}</span>
+              <span>4.5</span>
             </div>
             <div className="flex items-center gap-1">
               <ClockIcon className="w-5 h-5" />
-              <span>{toPersianNumbers(consultantData.consultation_time.toString())} دقیقه</span>
+              <span>{consultantData.consultation_time} دقیقه</span>
             </div>
           </div>
         </div>
@@ -459,76 +450,23 @@ function ConsultantPageContent() {
           </div>
         )}
 
-        <div className={`${!isAuthenticated ? 'opacity-50 pointer-events-none' : ''}`}>
+        <form onSubmit={handleSubmit} className={`${!isAuthenticated ? 'opacity-50 pointer-events-none' : ''}`}>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">رزرو نوبت</h2>
-
-          <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 mb-2">تاریخ مراجعه</label>
-            <input
-              type="text"
-              ref={dateInputRef}
-              data-jdp
-              data-jdp-only-date
-              data-jdp-min-date="today"
-              data-jdp-max-date={format(new Date().setMonth(new Date().getMonth() + 1), 'yyyy/MM/dd', { locale: faIR })}
-              placeholder="تاریخ مدنظر خود را انتخاب کنید"
-              readOnly
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-              onClick={() => setIsCalendarOpen(!isCalendarOpen)}
-              value={selectedDate ? selectedDate : ''}
-            />
-            {isCalendarOpen && (
-              <div className="absolute z-10 mt-2 top-full left-0">
-                <JalaliCalendar />
-              </div>
-            )}
-          </div>
-
-          <div className="mt-6">
-            <div className="flex items-center gap-2 mb-4">
-              <ClockIcon className="h-5 w-5 text-blue-500" />
-              <h3 className="text-lg font-semibold text-gray-900">ساعت مراجعه</h3>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              {availableTimes.length > 0 ? (
-                availableTimes.map((time) => {
-                  const isToday = selectedDate === format(new Date(), 'yyyy/MM/dd', { locale: faIR })
-                  const isPastTime = isToday && compareTimes(time, format(new Date(), 'HH:mm')) <= 0
-                  const isReserved = reservedTimes.includes(time)
-                  const isDisabled = isPastTime || isReserved
-
-                  return (
-                    <button
-                      key={time}
-                      onClick={() => !isDisabled && handleTimeSelect(time)}
-                      disabled={isDisabled}
-                      className={`w-full py-2 rounded-lg border text-center transition-colors ${
-                        isDisabled
-                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                          : selectedTime === time
-                          ? 'bg-blue-500 text-white border-blue-500'
-                          : 'bg-white text-gray-800 border-gray-300 hover:bg-blue-50'
-                      }`}
-                    >
-                      {time}
-                    </button>
-                  )
-                })
-              ) : (
-                <div className="col-span-3 text-center text-gray-400">زمانی موجود نیست</div>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full mt-6 py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-            >
-              {isSubmitting ? 'در حال رزرو...' : 'رزرو مشاوره'}
-            </button>
-          </div>
-        </div>
+          <ConsultationDateTimePicker
+            consultantId={consultantData.id}
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+            selectedTime={selectedTime}
+            setSelectedTime={setSelectedTime}
+          />
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full mt-6 py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+          >
+            {isSubmitting ? 'در حال رزرو...' : 'رزرو مشاوره'}
+          </button>
+        </form>
       </div>
     </div>
   )

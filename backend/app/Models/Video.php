@@ -12,13 +12,14 @@ class Video extends Model
         'video_path',
         'course_id',
         'thumbnail_path',
-        'is_premium'
+        'is_premium',
+        'sort'
     ];
 
     protected $with = [
-        'sort',
+        'course',
         'likes',
-        'comments'
+        'comments',
     ];
 
     public function course() {
@@ -35,9 +36,5 @@ class Video extends Model
 
     public function comments() {
         return $this->morphMany(Comment::class, 'commentable');
-    }
-
-    public function sort() {
-        return $this->hasMany(CourseVideoSort::class);
     }
 }

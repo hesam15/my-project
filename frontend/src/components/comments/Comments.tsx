@@ -4,8 +4,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useAuthContext } from '@/contexts/AuthContext'
 import moment from 'jalali-moment'
-import { toast } from 'sonner'
 import { CommentableType } from '@/constants/models'
+import { useAlert } from '@/contexts/AlertContext'
 
 interface Comment {
   id: number
@@ -21,8 +21,8 @@ interface CommentsProps {
   comments: Comment[]
   commentableId: number
   commentableType: CommentableType
-  onCommentAdded: (newComment: Comment) => void
-  onCommentStatusChanged?: (commentId: number, newStatus: boolean) => void
+  onCommentAdded: (comment: Comment) => void
+  onCommentStatusChanged?: (commentId: number, active: boolean) => void
   isAdmin?: boolean
 }
 
@@ -39,6 +39,7 @@ export default function Comments({
   const [commentContent, setCommentContent] = useState('')
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
   const [changingStatus, setChangingStatus] = useState<number | null>(null)
+  const { showAlert } = useAlert()
 
   const formatDate = (dateStr: string | undefined) => {
     if (!dateStr || dateStr === 'undefined' || dateStr === 'null') {
@@ -62,8 +63,8 @@ export default function Comments({
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user || !commentContent.trim() || !commentTitle.trim() || isSubmittingComment) {
-      if (!user) toast.error('برای ارسال نظر باید وارد حساب کاربری شوید')
-      if (!commentContent.trim() || !commentTitle.trim()) toast.error('عنوان و محتوای نظر نمی‌تواند خالی باشد')
+      if (!user) showAlert('برای ارسال نظر باید وارد حساب کاربری شوید', 'danger')
+      if (!commentContent.trim() || !commentTitle.trim()) showAlert('عنوان و محتوای نظر نمی‌تواند خالی باشد', 'danger')
       return
     }
 
@@ -107,15 +108,9 @@ export default function Comments({
       onCommentAdded(newComment)
       setCommentTitle('')
       setCommentContent('')
-      toast.success('نظر شما با موفقیت ارسال شد و پس از تأیید ادمین نمایش داده خواهد شد.')
+      showAlert('نظر شما با موفقیت ارسال شد و پس از تأیید ادمین نمایش داده خواهد شد.', 'success')
     } catch (error: any) {
-      console.error('Detailed error submitting comment:', error, {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        stack: error.stack,
-      })
-      toast.error(error.message || 'خطا در ارسال کامنت. لطفاً دوباره تلاش کنید.')
+      showAlert(error.message || 'خطا در ارسال نظر', 'danger')
     } finally {
       setIsSubmittingComment(false)
     }
@@ -150,7 +145,7 @@ export default function Comments({
       }
 
       onCommentStatusChanged?.(commentId, !currentStatus)
-      toast.success('وضعیت نظر با موفقیت تغییر کرد')
+      showAlert('وضعیت نظر با موفقیت تغییر کرد', 'success')
     } catch (error: any) {
       console.error('Error changing comment status:', error, {
         message: error.message,
@@ -158,7 +153,7 @@ export default function Comments({
         status: error.response?.status,
         stack: error.stack,
       })
-      toast.error(error.message || 'خطا در تغییر وضعیت نظر')
+      showAlert(error.message || 'خطا در تغییر وضعیت نظر', 'danger')
     } finally {
       setChangingStatus(null)
     }

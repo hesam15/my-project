@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import VideoSlider from '@/components/media/VideoSlider'
-import { toast } from 'sonner'
+import { useAlert } from '@/contexts/AlertContext'
 
 interface Video {
   id: number
@@ -19,6 +19,7 @@ export default function MediaPage() {
   const [latestVideos, setLatestVideos] = useState<Video[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
+  const { showAlert } = useAlert()
 
   useEffect(() => {
     const fetchVideos = async () => {
@@ -60,7 +61,7 @@ export default function MediaPage() {
         const errorMessage = err instanceof Error ? err.message : 'خطای ناشناخته در بارگذاری ویدیوها'
         console.error('Error fetching videos:', err)
         setError(errorMessage)
-        toast.error(errorMessage)
+        showAlert(errorMessage, 'danger')
       } finally {
         setLoading(false)
       }

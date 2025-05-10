@@ -101,6 +101,14 @@ export default function UsersPage() {
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push(`/admin/consultations/reservations/new?user_id=${user.id}&user_name=${encodeURIComponent(user.name)}&user_email=${encodeURIComponent(user.email)}`)}
+                          className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                        >
+                          رزرو مشاوره
+                        </Button>
                       </div>
                     </td>
                   </tr>

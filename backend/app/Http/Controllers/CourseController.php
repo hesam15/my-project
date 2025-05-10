@@ -32,7 +32,7 @@ class CourseController extends Controller
     }
 
     public function show(Course $course) {
-        $course = Course::with(['videos'])->findOrFail($course->id);
+        $course = Course::with(['sorted_videos'])->findOrFail($course->id);
 
         return response()->json($course);
     }
@@ -45,7 +45,7 @@ class CourseController extends Controller
             'description' => $request->description,
             'thumbnail_path' => $thumbnailPath,
             'is_premium' => boolval($request->is_premium),
-            'user_id' => $this->user->id
+            'user_id' => $this->user->id,
         ]);
 
         return response()->json([
@@ -80,20 +80,18 @@ class CourseController extends Controller
         ]);
     }
 
-    public function signVideo(Course $course, Request $request) {
-        if($course->videoSorts && $course->videoSorts()->where('sort_order', $request->sortOrder)->exists()) {
-            courseVideoSorting($course, $request->sortOrder);
+    public function signVideo(Course $course,Video $video  ,Request $request) {
+        if($video->where('course_id', $course->id)->where('sort', $request->sort)->exists()) {
+            courseVideoSorting($course, $video->sort, $request->sort);
         }
 
-        $videoSort = CourseVideoSort::create([
+        $video->update([
             'course_id' => $course->id,
-            'video_id' => $request->video,
-            'sort_order' => $request->sortOrder
+            'sort' => $request->sort
         ]);
 
         return response()->json([
-            'message' => 'ترتیب با موفقیت ثبت شد',
-            'videoSort' => $videoSort
+            'message' => 'ترتیب بندی با موفقیت انجام شد'
         ]);
     }
 }

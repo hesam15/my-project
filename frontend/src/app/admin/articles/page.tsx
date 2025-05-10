@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { posts } from '@/lib/api';
-import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Image from 'next/image';
+import { useAlert } from '@/contexts/AlertContext';
 
 interface Article {
   id: string;
@@ -25,6 +25,8 @@ export default function ArticlesPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { showAlert } = useAlert();
 
   useEffect(() => {
     const fetchArticles = async () => {
@@ -32,7 +34,7 @@ export default function ArticlesPage() {
         const response = await posts.getAll()
         setArticles(response.data)
       } catch {
-        toast.error('خطا در دریافت لیست مقالات')
+        showAlert('خطا در دریافت لیست مقالات', 'danger');
       } finally {
         setLoading(false)
       }
@@ -45,13 +47,23 @@ export default function ArticlesPage() {
     router.push(`/admin/articles/edit/${id}`);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
+    setSelectedId(id);
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedId) return;
+
     try {
-      await posts.delete(id)
-      setArticles(articles.filter(article => article.id !== id))
-      toast.success('مقاله با موفقیت حذف شد')
+      await posts.delete(selectedId);
+      setArticles(articles.filter(article => article.id !== selectedId));
+      showAlert('مقاله با موفقیت حذف شد', 'success');
     } catch {
-      toast.error('خطا در حذف مقاله')
+      showAlert('خطا در حذف مقاله', 'danger');
+    } finally {
+      setConfirmOpen(false);
+      setSelectedId(null);
     }
   };
 
@@ -133,7 +145,7 @@ export default function ArticlesPage() {
       <ConfirmDialog
         open={confirmOpen}
         message="آیا از حذف این مقاله اطمینان دارید؟"
-        onConfirm={() => {}}
+        onConfirm={handleConfirmDelete}
         onCancel={() => setConfirmOpen(false)}
       />
 

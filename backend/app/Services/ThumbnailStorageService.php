@@ -22,7 +22,7 @@ class ThumbnailStorageService {
         }
 
         if($model::where('thumbnail_path', $thumbnailPath)->exists() && $oldThumbnail != $thumbnailPath) {
-            $response = response()->json(['message' => 'فایل تامبنیل ویدیویی قبلا با این نام ثبت شده است'], 409);
+            $response = response()->json(['message' => 'فایل تامبنیل قبلا با این نام ثبت شده است'], 409);
             throw new HttpResponseException($response);
         }
 

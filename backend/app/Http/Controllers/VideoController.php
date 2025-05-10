@@ -10,6 +10,7 @@ use App\Http\Requests\VideoStoreRequest;
 use App\Http\Requests\VideoUpdateRequest;
 use Laravel\Sanctum\PersonalAccessToken;
 use App\Services\ThumbnailStorageService;
+use Illuminate\Http\Request as HttpRequest;
 
 class VideoController extends Controller
 {
@@ -32,7 +33,11 @@ class VideoController extends Controller
         return response()->json($video);
     }
 
-    public function store(VideoStoreRequest $request) {
+    public function store(HttpRequest $request) {
+        if($request->course_id && Video::where('course_id', $request->course_id)->where('sort', $request->sort)->first()) {
+            courseNewVideoSorting($request->course_id, $request->sort);
+        }
+
         $videoPath = FileStorageService::store($request->file('video_path'), $this->user, 'video');
         $thumbnailPath = ThumbnailStorageService::store($request->file('thumbnail_path'), $this->user, 'video');
 
@@ -42,7 +47,8 @@ class VideoController extends Controller
             'video_path' => $videoPath,
             'course_id' => $request->course_id,
             'is_premium' => boolval($request->is_premium),
-            'thumbnail_path' => $thumbnailPath
+            'thumbnail_path' => $thumbnailPath,
+            'sort' => $request->sort
         ]);
 
         return response()->json([

@@ -14,7 +14,7 @@ use App\Http\Controllers\VideoController;
 use App\Models\ConsultationResevation;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/reserved-times', [ConsultationResevationController::class, 'reservedTimes']);
+Route::get('/reservations/available-times/{consultation}', [ConsultationResevationController::class, 'availableTimes']);
 
 Route::prefix('/courses')->controller(CourseController::class)->group(function() {
     Route::get('/', 'index');
@@ -53,6 +53,8 @@ Route::middleware('checkTokenCookie')->group(function() {
 
     Route::apiResource('consultations', ConsultationController::class)->only(['store', 'update', 'destroy']);
 
+    Route::put('/reservations/{reservation}/update-status', [ConsultationResevationController::class, 'updateStatus']);
+
     Route::apiResource('reservations', ConsultationResevationController::class);
 
     Route::post('/like', [LikeController::class, 'like']);
@@ -62,7 +64,7 @@ Route::middleware('checkTokenCookie')->group(function() {
 
         Route::apiResource('/users', UserController::class);
 
-        Route::post('/courses/{course}/signVideo', [CourseController::class, 'signVideo']);
+        Route::post('/courses/{course}/videos/{video}/signVideo', [CourseController::class, 'signVideo']);
         Route::apiResource('courses', CourseController::class)->only(['store', 'update', 'destroy']);
 
         Route::apiResource('videos', VideoController::class)->only(['store', 'update', 'destroy']);

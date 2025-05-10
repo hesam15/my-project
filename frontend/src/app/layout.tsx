@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { AlertProvider } from '@/contexts/AlertContext'
+import GlobalAlert from '@/components/ui/GlobalAlert'
+import { useAlert } from '@/contexts/AlertContext'
+import AlertWrapper from '@/components/ui/AlertWrapper'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -24,11 +28,12 @@ export default function RootLayout({
   return (
     <html lang="fa" dir="rtl">
       <body className="font-[Yekan Bakh]">
-        <div className='w-full'>
+        <AlertProvider>
+          <AlertWrapper />
           <AuthProvider>
             {children}
           </AuthProvider>
-        </div>
+        </AlertProvider>
       </body>
     </html>
   )

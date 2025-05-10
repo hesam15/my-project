@@ -32,17 +32,17 @@ export default function Template({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className={isAdmin ? 'min-h-screen bg-gray-50' : 'min-h-screen bg-[#F3F3F3] flex justify-center items-start'}>
+    <div className={isAdmin ? 'w-full min-h-screen bg-gray-50' : 'min-h-screen bg-[#F3F3F3] flex justify-center items-start'}>
       {isAdmin ? (
-        <main className="grid grid-cols-12 h-screen">
+        <main className="grid grid-cols-12">
           {/* Sidebar */}
-          <div className="col-span-2 border-l border-gray-200 bg-white">
+          <div className="col-span-2 border-l border-gray-200 bg-white h-screen">
             <AdminSidebar />
           </div>
           {/* Content Area: Navbar + Main Content */}
           <div className="col-span-10 flex flex-col">
             <Navbar title={getPageTitle(pathname)} icon={undefined} />
-            <div className="flex-1 w-full pt-8 px-12 pb-8 overflow-y-auto">
+            <div className="flex-1 w-full pt-20 px-12 overflow-y-auto h-screen">
               {children}
             </div>
           </div>

@@ -6,8 +6,8 @@ import Link from 'next/link'
 import { toPersianNumbers } from '@/utils/numbers'
 import { useState } from 'react'
 import { useAuthContext } from '@/contexts/AuthContext'
-import { toast } from 'sonner'
 import { COMMENTABLE_TYPES } from '@/constants/models'
+import { useAlert } from '@/contexts/AlertContext'
 
 interface VideoPlayerProps {
   id: number
@@ -36,15 +36,14 @@ export default function VideoPlayer({
   isLarge = false,
   setVideo
 }: VideoPlayerProps) {
-  const { user } = useAuthContext()
+  const [isPlaying, setIsPlaying] = useState(false)
   const [isLiking, setIsLiking] = useState(false)
+  const { user } = useAuthContext()
+  const { showAlert } = useAlert()
 
-  const handleLike = async (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-
+  const handleLike = async () => {
     if (!user) {
-      toast.error('برای لایک کردن باید وارد حساب کاربری شوید')
+      showAlert('برای لایک کردن باید وارد حساب کاربری شوید', 'danger')
       return
     }
 
@@ -52,53 +51,31 @@ export default function VideoPlayer({
 
     setIsLiking(true)
     try {
-      // 1. ارسال درخواست لایک/حذف لایک
-      const likeResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/like`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/likes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
         },
-        credentials: 'include',
         body: JSON.stringify({
           likeable_id: id,
           likeable_type: COMMENTABLE_TYPES.VIDEO,
         }),
-      })
-
-      if (!likeResponse.ok) {
-        const errorData = await likeResponse.json()
-        toast.error(errorData.message || 'خطا در ثبت لایک')
-        return
-      }
-
-      // 2. دریافت داده‌های به‌روز ویدیو
-      const videoResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/videos/${id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
         credentials: 'include',
       })
 
-      if (videoResponse.ok) {
-        const videoData = await videoResponse.json()
-        setVideo((prev: any) =>
-          prev
-            ? {
-                ...prev,
-                likes: Array.isArray(videoData.likes) ? videoData.likes.length : 0,
-                isLiked: user && Array.isArray(videoData.likes) ? videoData.likes.some((like: any) => like.user_id === user.id) : false,
-              }
-            : null
-        )
-        toast.success(videoData.likes.some((like: any) => like.user_id === user.id) ? 'ویدیو لایک شد' : 'لایک حذف شد')
-      } else {
-        toast.error('خطا در به‌روزرسانی اطلاعات ویدیو')
+      if (!response.ok) {
+        throw new Error('خطا در ثبت لایک')
       }
-    } catch (error) {
-      toast.error('خطایی در ارتباط با سرور رخ داد')
+
+      setVideo((prev: any) => ({
+        ...prev,
+        likes: prev.is_liked ? prev.likes - 1 : prev.likes + 1,
+        is_liked: !prev.is_liked,
+      }))
+
+      showAlert(prev => prev?.is_liked ? 'لایک حذف شد' : 'ویدیو لایک شد', 'success')
+    } catch (error: any) {
+      showAlert(error.message, 'danger')
     } finally {
       setIsLiking(false)
     }

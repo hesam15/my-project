@@ -7,32 +7,34 @@ import { useEffect, useState } from 'react'
 import 'swiper/css'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
+import { courses } from '@/lib/api'
 
 interface Course {
   id: number
   title: string
   description: string
-  thumbnail: string
-  date: string
-  likes: number
-  comments: number
+  thumbnail_path: string
+  created_at: string
+  likes: any[]
+  comments: any[]
 }
 
 export default function CoursesSlider() {
-  const [courses, setCourses] = useState<Course[]>([])
+  const [coursesList, setCoursesList] = useState<Course[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses`)
-        if (!response.ok) {
-          throw new Error('خطا در دریافت اطلاعات')
+        const response = await courses.getAll()
+        if (response.data) {
+          setCoursesList(response.data)
+        } else {
+          setCoursesList([])
         }
-        const data = await response.json()
-        setCourses(data)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'خطا در دریافت ا��لاعات')
+        setError(err instanceof Error ? err.message : 'خطا در دریافت اطلاعات')
       } finally {
         setIsLoading(false)
       }
@@ -63,7 +65,7 @@ export default function CoursesSlider() {
     )
   }
 
-  if (courses.length === 0) {
+  if (coursesList.length === 0) {
     return (
       <div className="w-full space-y-4">
         <h2 className="text-lg font-bold text-white">دوره ها</h2>
@@ -86,9 +88,17 @@ export default function CoursesSlider() {
           pagination={{ clickable: true }}
           className="!py-4"
         >
-          {courses.map((course) => (
+          {coursesList.map((course) => (
             <SwiperSlide key={course.id}>
-              <CourseCard {...course} />
+              <CourseCard
+                id={course.id}
+                title={course.title}
+                description={course.description}
+                thumbnail_path={course.thumbnail_path}
+                date={course.created_at}
+                likes={course.likes}
+                comments={course.comments}
+              />
             </SwiperSlide>
           ))}
         </Swiper>

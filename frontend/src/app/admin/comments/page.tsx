@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { comments } from '@/lib/api';
 import { toast } from 'sonner';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import { useAlert } from '@/contexts/AlertContext';
 
 interface Comment {
   id: number;
@@ -95,61 +96,60 @@ const ActionButton = ({
 };
 
 export default function CommentsPage() {
-  const [commentsList, setComments] = useState<Comment[]>([]);
+  const [commentList, setCommentList] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedComment, setSelectedComment] = useState<Comment | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [statusLoading, setStatusLoading] = useState<'approve' | 'reject' | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-
-  // Move fetchComments outside of useEffect so it can be used elsewhere
-  const fetchComments = async () => {
-    try {
-      const response = await comments.getAll()
-      setComments(response.data)
-    } catch {
-      toast.error('خطا در دریافت لیست نظرات')
-    }
-  }
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const { showAlert } = useAlert();
 
   useEffect(() => {
-    fetchComments()
-  }, [])
+    fetchComments();
+  }, []);
+
+  const fetchComments = async () => {
+    try {
+      const response = await comments.getAll();
+      setCommentList(response.data);
+    } catch {
+      showAlert('خطا در دریافت لیست نظرات', 'danger');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleStatusChange = async (id: number, status: boolean, loadingType: 'approve' | 'reject') => {
     setStatusLoading(loadingType);
     try {
       await comments.changeStatus(id.toString(), status);
       await fetchComments();
-      toast.success(status ? 'نظر تایید شد.' : 'نظر رد شد.');
+      showAlert(status ? 'نظر تایید شد.' : 'نظر رد شد.', 'success');
     } catch {
-      toast.error('خطا در تغییر وضعیت نظر');
+      showAlert('خطا در تغییر وضعیت نظر', 'danger');
     } finally {
       setStatusLoading(null);
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/comments/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        credentials: 'include',
-      });
+  const handleDelete = (id: number) => {
+    setSelectedId(id);
+    setConfirmOpen(true);
+  };
 
-      if (!response.ok) throw new Error('خطا در حذف نظر');
-      await fetchComments();
-      toast.success('نظر با موفقیت حذف شد.');
+  const handleConfirmDelete = async () => {
+    if (!selectedId) return;
+
+    try {
+      await comments.delete(selectedId);
+      setCommentList(commentList.filter(comment => comment.id !== selectedId));
+      showAlert('نظر با موفقیت حذف شد', 'success');
     } catch {
-      toast.error('خطا در حذف نظر');
+      showAlert('خطا در حذف نظر', 'danger');
     } finally {
-      setLoading(false);
+      setConfirmOpen(false);
+      setSelectedId(null);
     }
   };
 
@@ -164,7 +164,7 @@ export default function CommentsPage() {
       );
     }
 
-    if (commentsList.length === 0) {
+    if (commentList.length === 0) {
       return (
         <div className="text-center p-6 text-gray-500">
           هیچ نظری یافت نشد
@@ -174,7 +174,7 @@ export default function CommentsPage() {
 
     return (
       <div className="grid gap-4 p-4">
-        {commentsList.map((comment) => (
+        {commentList.map((comment) => (
           <Card key={comment.id} className="p-4 space-y-3">
             <div className="flex justify-between items-start">
               <div className="space-y-2">
@@ -202,8 +202,7 @@ export default function CommentsPage() {
                   variant="ghost"
                   size="icon"
                   onClick={() => {
-                    setDeleteId(comment.id);
-                    setConfirmOpen(true);
+                    handleDelete(comment.id);
                   }}
                   className="h-10 w-10 text-red-500"
                 >
@@ -293,10 +292,7 @@ export default function CommentsPage() {
       <ConfirmDialog
         open={confirmOpen}
         message="آیا از حذف دائمی این نظر اطمینان دارید؟"
-        onConfirm={() => {
-          handleDelete(deleteId!);
-          setConfirmOpen(false);
-        }}
+        onConfirm={handleConfirmDelete}
         onCancel={() => setConfirmOpen(false)}
       />
     </div>

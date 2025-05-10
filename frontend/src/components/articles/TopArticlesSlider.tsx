@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { posts } from '@/lib/api';
-import { toast } from 'sonner';
 import TopArticleCard from './TopArticleCard';
+import { useAlert } from '@/contexts/AlertContext';
 
 interface Article {
   id: number;
@@ -21,31 +21,32 @@ export default function TopArticlesSlider() {
   const [[page, direction], setPage] = useState([0, 0]);
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
+  const { showAlert } = useAlert();
 
   useEffect(() => {
-    const fetchTopArticles = async () => {
-      try {
-        const response = await posts.getTop();
-        const formattedData = response.data.map((article: any) => ({
-          id: article.id,
-          title: article.title,
-          description: article.content,
-          thumbnail_path: article.thumbnail_path || '/images/nice.jpg',
-          date: new Date(article.created_at).toLocaleDateString('fa-IR'),
-          likes: article.likes.length,
-          comments: article.comments.length,
-          views_count: article.views_count,
-        }));
-        setArticles(formattedData);
-      } catch (error) {
-        toast.error('خطا در دریافت مقالات برتر');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTopArticles();
+    fetchArticles();
   }, []);
+
+  const fetchArticles = async () => {
+    try {
+      const response = await posts.getTop();
+      const formattedData = response.data.map((article: any) => ({
+        id: article.id,
+        title: article.title,
+        description: article.content,
+        thumbnail_path: article.thumbnail_path || '/images/nice.jpg',
+        date: new Date(article.created_at).toLocaleDateString('fa-IR'),
+        likes: article.likes.length,
+        comments: article.comments.length,
+        views_count: article.views_count,
+      }));
+      setArticles(formattedData);
+    } catch {
+      showAlert('خطا در دریافت مقالات برتر', 'danger');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const slideVariants = {
     enter: (direction: number) => ({

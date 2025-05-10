@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('thumbnail_path')->nullable();
             $table->boolean('is_premium')->default(false);
             $table->integer('views_count')->default(0);
+            $table->integer('sort')->default(0);
             $table->foreignId('course_id')->nullable()->constrained()->nullOnDelete()->cascadeOnUpdate();
             $table->timestamps();
         });

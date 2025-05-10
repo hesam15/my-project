@@ -109,7 +109,10 @@ export const courses = {
     api.put(`/api/courses/${id}`, data),
   
   create: (data: any) => 
-    api.post('/api/courses', data)
+    api.post('/api/courses', data),
+
+  delete: (id: string) =>
+    api.delete(`/api/courses/${id}`)
 }
 
 // Videos APIs
@@ -154,6 +157,45 @@ export const managementTools = {
   create: (data: any) => api.post('/api/tools', data),
   update: (id: string, data: any) => api.put(`/api/tools/${id}`, data),
   delete: (id: string) => api.delete(`/api/tools/${id}`),
+}
+
+// Consultations APIs
+export const consultations = {
+  getAll: () => 
+    api.get('/api/consultations'),
+  
+  getOne: (id: number) => 
+    api.get(`/api/consultations/${id}`),
+  
+  create: (data: any) => 
+    api.post('/api/consultations', data),
+  
+  update: (id: number, data: any) => 
+    api.put(`/api/consultations/${id}`, data),
+  
+  delete: (id: number) => 
+    api.delete(`/api/consultations/${id}`)
+}
+
+// Consultation Reservations APIs
+export const consultationReservations = {
+  getAll: () => 
+    api.get('/api/reservations'),
+  
+  getOne: (id: number) => 
+    api.get(`/api/reservations/${id}`),
+  
+  create: (data: any) => 
+    api.post('/api/reservations', data),
+  
+  update: (id: number, data: any) => 
+    api.put(`/api/reservations/${id}`, data),
+  
+  delete: (id: number) => 
+    api.delete(`/api/reservations/${id}`),
+
+  updateStatus: (id: number, status: string) =>
+    api.put(`/api/reservations/${id}/update-status`, { status })
 }
 
 // Add request interceptor for CSRF token
