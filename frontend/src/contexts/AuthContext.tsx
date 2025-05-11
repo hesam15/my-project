@@ -36,8 +36,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_URL = 'http://localhost:8000';
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,8 +47,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const getCsrfToken = async () => {
     try {
-      console.log('Fetching CSRF token from:', `${API_URL}/sanctum/csrf-cookie`);
-      const response = await fetch(`${API_URL}/sanctum/csrf-cookie`, {
+      console.log('Fetching CSRF token from:', `${process.env.NEXT_PUBLIC_API_URL}/sanctum/csrf-cookie`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sanctum/csrf-cookie`, {
         method: 'GET',
         credentials: 'include',
       });
@@ -90,8 +88,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      console.log('checkAuth - Sending request to:', `${API_URL}/api/users/check`);
-      const response = await fetch(`${API_URL}/api/users/check`, {
+      console.log('checkAuth - Sending request to:', `${process.env.NEXT_PUBLIC_API_URL}/api/users/check`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/check`, {
         credentials: 'include',
         headers: {
           'Accept': 'application/json',
@@ -140,7 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('login - XSRF-TOKEN:', xsrfToken);
 
       console.log('login - Request payload:', credentials);
-      const response = await fetch(`${API_URL}/api/users/login`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/login`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -190,7 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('register - XSRF-TOKEN:', xsrfToken);
 
       console.log('register - Request payload:', credentials);
-      const response = await fetch(`${API_URL}/api/users/register`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/register`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -228,7 +226,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const xsrfToken = await getCsrfToken();
       console.log('logout - XSRF-TOKEN:', xsrfToken);
 
-      const response = await fetch(`${API_URL}/api/logout`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/logout`, {
         method: 'POST',
         credentials: 'include',
         headers: {

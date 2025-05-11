@@ -6,6 +6,7 @@ import { useAuthContext } from '@/contexts/AuthContext'
 import moment from 'jalali-moment'
 import { CommentableType } from '@/constants/models'
 import { useAlert } from '@/contexts/AlertContext'
+import { comments } from '@/lib/api'
 
 interface Comment {
   id: number
@@ -78,23 +79,8 @@ export default function Comments({
       }
       console.log('Submitting comment with payload:', payload)
 
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/comments`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payload),
-        credentials: 'include',
-      })
-
-      const responseData = await response.json()
-      console.log('Comment API response:', responseData)
-
-      if (!response.ok) {
-        throw new Error(responseData.message || `HTTP error! status: ${response.status}`)
-      }
+      const response = await comments.create(payload)
+      const responseData = response.data
 
       const newComment: Comment = {
         id: responseData.id,
@@ -200,45 +186,4 @@ export default function Comments({
       <div className="space-y-4">
         {comments.length > 0 ? (
           comments.map((comment, index) => (
-            <div key={`${comment.id}-${index}`} className="border-b border-gray-200 pb-4">
-              <div className="flex justify-between items-center mb-2">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-800">{comment.title}</h3>
-                  <p className="text-xs text-gray-500">{comment.user?.name || 'کاربر ناشناس'}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {isAdmin && (
-                    <button
-                      onClick={() => handleStatusChange(comment.id, comment.active || false)}
-                      disabled={changingStatus === comment.id}
-                      className={`px-2 py-1 text-xs rounded-full ${
-                        comment.active
-                          ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                          : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                      } transition-colors disabled:opacity-50`}
-                    >
-                      {changingStatus === comment.id
-                        ? 'در حال تغییر...'
-                        : comment.active
-                        ? 'فعال'
-                        : 'غیرفعال'}
-                    </button>
-                  )}
-                  <span className="text-xs text-gray-500">{formatDate(comment.created_at)}</span>
-                </div>
-              </div>
-              <p className="text-gray-600 text-sm leading-6">{comment.content}</p>
-              {!comment.active && user?.id === comment.user_id && (
-                <p className="text-xs text-yellow-600 mt-2">
-                  نظر شما در حال بررسی توسط ادمین‌ها می‌باشد.
-                </p>
-              )}
-            </div>
-          ))
-        ) : (
-          <p className="text-gray-600 text-sm">هنوز نظری ثبت نشده است.</p>
-        )}
-      </div>
-    </div>
-  )
-}
+            <div key={`

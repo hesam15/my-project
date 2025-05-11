@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react'
 import { use } from 'react'
 import { useAuthContext } from '@/contexts/AuthContext'
 import moment from 'jalali-moment'
-import { comments } from '@/lib/api'
+import { comments, likes, courses } from '@/lib/api'
 import Comments from '@/components/comments/Comments'
 import { COMMENTABLE_TYPES } from '@/constants/models'
 
@@ -71,27 +71,16 @@ export default function CoursePage({ params }: CoursePageProps) {
   useEffect(() => {
     const fetchCourse = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses/${resolvedParams.slug}`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          credentials: 'include',
+        const response = await courses.getOne(resolvedParams.slug)
+        const data = response.data
+        setCourseData({
+          ...data,
+          likes_count: data.likes.length,
+          is_liked: user ? data.likes.some((like: Like) => like.user_id === user.id) : false,
+          comments_count: data.comments?.length || 0,
+          comments: data.comments || [],
         })
-        if (response.ok) {
-          const data = await response.json()
-          setCourseData({
-            ...data,
-            likes_count: data.likes.length,
-            is_liked: user ? data.likes.some((like: Like) => like.user_id === user.id) : false,
-            comments_count: data.comments?.length || 0,
-            comments: data.comments || [],
-          })
-          setError(null)
-        } else {
-          const errorData = await response.json()
-          setError(`خطا در بارگذاری دوره: ${response.status} ${response.statusText}`)
-        }
+        setError(null)
       } catch (error) {
         setError('خطایی در ارتباط با سرور رخ داد')
       }
@@ -109,20 +98,12 @@ export default function CoursePage({ params }: CoursePageProps) {
 
     setIsLiking(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/like`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          likeable_id: courseData.id,
-          likeable_type: 'App\\Models\\Course',
-        }),
-      })
+      const response = await likes.toggle({
+        likeable_id: courseData.id,
+        likeable_type: 'App\\Models\\Course'
+      });
 
-      if (response.ok) {
+      if (response.status === 200) {
         setCourseData((prev) =>
           prev
             ? {
@@ -132,9 +113,6 @@ export default function CoursePage({ params }: CoursePageProps) {
               }
             : null
         )
-      } else {
-        const errorData = await response.json()
-        console.error('Error toggling like:', errorData)
       }
     } catch (error) {
       console.error('Error toggling like:', error)
