@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import { usePathname } from 'next/navigation';
+import '../globals.css'
 
 const pageTitles: Record<string, string> = {
   '/admin': 'داشبورد',
@@ -29,13 +30,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   )?.[1] || 'مدیریت';
 
   return (
-    <div className="flex min-h-screen">
-      <AdminSidebar />
-      <div className="flex-1">
-        <main className="p-6">
-          {children}
-        </main>
+      <div className="flex min-h-screen">
+        <div className="flex-1">
+          <main className={!['/login', '/register'].includes(pathname) ? "p-6" : '' }>
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
   );
 } 

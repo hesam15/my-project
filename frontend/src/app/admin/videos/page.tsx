@@ -1,76 +1,82 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { videos } from '@/lib/api'
-import { toast } from 'react-hot-toast'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Eye, Pencil, Trash2, Plus, Crown, Clock, Play, BookOpen } from 'lucide-react'
-import ConfirmDialog from '@/components/ui/ConfirmDialog'
-import Image from 'next/image'
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { videos } from '@/lib/api';
+import { toast } from 'react-hot-toast';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Eye, Pencil, Trash2, Plus, Crown, Clock, Play, BookOpen } from 'lucide-react';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import Image from 'next/image';
+import { useAlert } from '@/contexts/AlertContext';
 
 interface Course {
-  id: number
-  title: string
-  thumbnail_path: string | null
+  id: number;
+  title: string;
+  thumbnail_path: string | null;
 }
 
 interface Video {
-  id: number
-  title: string
-  description: string
-  video_path: string
-  thumbnail_path: string | null
-  is_premium: number
-  views_count: number
-  sort: number
-  course_id: number | null
-  course?: Course
-  created_at: string
-  updated_at: string
-  likes: any[]
-  comments: any[]
+  id: number;
+  title: string;
+  description: string;
+  video_path: string;
+  thumbnail_path: string | null;
+  is_premium: number;
+  views_count: number;
+  sort: number;
+  course_id: number | null;
+  course?: Course;
+  created_at: string;
+  updated_at: string;
+  likes: any[];
+  comments: any[];
 }
 
 export default function VideosPage() {
-  const [videosList, setVideos] = useState<Video[]>([])
-  const [loading, setLoading] = useState(true)
-  const [confirmOpen, setConfirmOpen] = useState(false)
-  const [deleteId, setDeleteId] = useState<number | null>(null)
-  const router = useRouter()
+  const [videosList, setVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const router = useRouter();
+  const { showAlert } = useAlert();
 
   useEffect(() => {
     const fetchVideos = async () => {
       try {
-        const response = await videos.getAll()
-        setVideos(response.data)
+        const response = await videos.getAll();
+        setVideos(response.data);
+        showAlert('لیست ویدیوها با موفقیت دریافت شد', 'success');
       } catch {
-        toast.error('خطا در دریافت لیست ویدیوها')
+        showAlert('خطا در دریافت لیست ویدیوها', 'danger');
+        toast.error('خطا در دریافت لیست ویدیوها');
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchVideos()
-  }, [])
+    fetchVideos();
+  }, [showAlert]);
 
   const handleDelete = async (id: string) => {
     try {
-      await videos.delete(Number(id))
-      setVideos(videosList.filter(video => video.id !== Number(id)))
-      toast.success('ویدیو با موفقیت حذف شد')
+      await videos.delete(Number(id));
+      setVideos(videosList.filter(video => video.id !== Number(id)));
+      showAlert('ویدیو با موفقیت حذف شد', 'success');
+      toast.success('ویدیو با موفقیت حذف شد');
     } catch {
-      toast.error('خطا در حذف ویدیو')
+      showAlert('خطا در حذف ویدیو', 'danger');
+      toast.error('خطا در حذف ویدیو');
     }
-  }
+  };
 
   if (loading) {
     return (
       <div className="text-center p-6">
         <p>در حال بارگذاری...</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -199,10 +205,11 @@ export default function VideosPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => {
-                            setDeleteId(video.id)
-                            setConfirmOpen(true)
+                            setDeleteId(video.id);
+                            setConfirmOpen(true);
                           }}
                           title="حذف"
+                          className="text-red-500 hover:text-red-700"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -219,6 +226,7 @@ export default function VideosPage() {
       <Button
         className="fixed bottom-20 left-4 w-12 h-12 rounded-full shadow-lg"
         onClick={() => router.push('/admin/videos/new')}
+        title="ایجاد ویدیو جدید"
       >
         <Plus className="h-6 w-6" />
       </Button>
@@ -228,12 +236,12 @@ export default function VideosPage() {
         message="آیا از حذف این ویدیو اطمینان دارید؟"
         onConfirm={() => {
           if (deleteId !== null) {
-            handleDelete(deleteId.toString())
-            setConfirmOpen(false)
+            handleDelete(deleteId.toString());
+            setConfirmOpen(false);
           }
         }}
         onCancel={() => setConfirmOpen(false)}
       />
     </div>
-  )
+  );
 }

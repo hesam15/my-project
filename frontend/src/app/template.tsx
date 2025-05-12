@@ -5,11 +5,18 @@ import Navbar from '@/components/Navbar'
 import BottomNavigation from '@/components/BottomNavigation'
 import AdminSidebar from '@/components/admin/AdminSidebar'
 import { HomeIcon } from '@heroicons/react/24/outline'
+import { useEffect, useState } from 'react'
 
 export default function Template({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
+  const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter()
-  const isAdmin = pathname.startsWith('/admin')
+  const pathname = usePathname();
+
+  useEffect(() => {
+    const url = window.location.hostname;
+
+    setIsAdmin(url.startsWith('admin.'));
+  }, []);
 
   const handleTabChange = (tabId: number) => {
     switch (tabId) {
@@ -34,15 +41,19 @@ export default function Template({ children }: { children: React.ReactNode }) {
   return (
     <div className={isAdmin ? 'w-full min-h-screen bg-gray-50' : 'min-h-screen bg-[#F3F3F3] flex justify-center items-start'}>
       {isAdmin ? (
-        <main className="grid grid-cols-12">
+        <main className={!['/login', '/register'].includes(pathname) ? "grid grid-cols-12" : '' }>
           {/* Sidebar */}
+          {!['/login', '/register'].includes(pathname) ? (
           <div className="col-span-2 border-l border-gray-200 bg-white h-screen">
             <AdminSidebar />
           </div>
+          ) : ''}
           {/* Content Area: Navbar + Main Content */}
-          <div className="col-span-10 flex flex-col">
+          <div className={!['/login', '/register'].includes(pathname) ? "col-span-10 flex flex-col" : '' }>
+            {!['/login', '/register'].includes(pathname) ? (
             <Navbar title={getPageTitle(pathname)} icon={undefined} />
-            <div className="flex-1 w-full pt-20 px-12 overflow-y-auto h-screen">
+            ) : ''}
+            <div className={!['/login', '/register'].includes(pathname) ? "flex-1 w-full pt-20 px-12 overflow-y-auto h-screen" : '' }>
               {children}
             </div>
           </div>
@@ -60,7 +71,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
             {children}
           </main>
           {/* Bottom Navigation - Fixed to the glass */}
-          <div className="fixed left-1/2 bottom-4 -translate-x-1/2 w-full max-w-[430px] px-4 z-50">
+          <div className={isAdmin ? 'hidden' : "fixed left-1/2 bottom-4 -translate-x-1/2 w-full max-w-[430px] px-4 z-50"}>
             <BottomNavigation activeTab={getActiveTab(pathname)} onTabChange={handleTabChange} />
           </div>
         </div>

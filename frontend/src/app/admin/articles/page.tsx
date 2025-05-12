@@ -74,72 +74,90 @@ export default function ArticlesPage() {
   return (
     <div className="space-y-6 w-full px-0 font-sans">
       <Card>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>تصویر</TableHead>
-                <TableHead>عنوان</TableHead>
-                <TableHead>تاریخ ایجاد</TableHead>
-                <TableHead>آخرین بروزرسانی</TableHead>
-                <TableHead>نوع</TableHead>
-                <TableHead className="text-left">عملیات</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b">
+                <th className="text-right p-4">تصویر</th>
+                <th className="text-right p-4">عنوان</th>
+                <th className="text-right p-4">تاریخ ایجاد</th>
+                <th className="text-right p-4">آخرین بروزرسانی</th>
+                <th className="text-right p-4">نوع</th>
+                <th className="text-right p-4">عملیات</th>
+              </tr>
+            </thead>
+            <tbody>
               {articles.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-gray-500 py-8">
+                <tr>
+                  <td colSpan={6} className="text-center p-4 text-gray-500">
                     پستی وجود ندارد
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               ) : (
                 articles.map((article) => (
-                  <TableRow key={article.id}>
-                    <TableCell>
-                      {article.thumbnail_path && (
-                        <Image
-                          src={`${process.env.NEXT_PUBLIC_API_URL}/storage/${article.thumbnail_path}`}
-                          alt={article.title}
-                          width={80}
-                          height={48}
-                          className="w-20 h-12 object-cover rounded"
-                        />
-                      )}
-                    </TableCell>
-                    <TableCell>{article.title}</TableCell>
-                    <TableCell>{new Date(article.created_at).toLocaleDateString('fa-IR')}</TableCell>
-                    <TableCell>{new Date(article.updated_at).toLocaleDateString('fa-IR')}</TableCell>
-                    <TableCell>
-                      <span className={article.is_premium ? 'text-purple-600' : 'text-green-600'}>
-                        {article.is_premium ? 'پریمیوم' : 'رایگان'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
+                  <tr key={article.id} className="border-b">
+                    <td className="p-4">
+                      <div className="relative w-32 h-20 bg-gray-100 rounded overflow-hidden">
+                        {article.thumbnail_path ? (
+                          <Image
+                            src={`${process.env.NEXT_PUBLIC_API_URL}/storage/${article.thumbnail_path}`}
+                            alt={article.title}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                            <BookOpen className="w-8 h-8 text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <div className="font-medium">{article.title}</div>
+                    </td>
+                    <td className="p-4">
+                      {new Date(article.created_at).toLocaleDateString('fa-IR')}
+                    </td>
+                    <td className="p-4">
+                      {new Date(article.updated_at).toLocaleDateString('fa-IR')}
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-2">
+                        {article.is_premium && (
+                          <div className="flex items-center gap-1 text-purple-500">
+                            <Crown className="w-4 h-4" />
+                            <span className="text-sm">پریمیوم</span>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-4">
                       <div className="flex gap-2">
                         <Button
-                          variant="outline"
-                          size="sm"
+                          variant="ghost"
+                          size="icon"
                           onClick={() => handleEdit(article.id)}
+                          title="ویرایش"
                         >
-                          ویرایش
+                          <Pencil className="h-4 w-4" />
                         </Button>
                         <Button
-                          variant="outline"
-                          size="sm"
+                          variant="ghost"
+                          size="icon"
                           onClick={() => handleDelete(article.id)}
-                          className="text-red-600 border-red-300 hover:bg-red-50"
+                          title="حذف"
+                          className="text-red-500 hover:text-red-700"
                         >
-                          حذف
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ))
               )}
-            </TableBody>
-          </Table>
-        </CardContent>
+            </tbody>
+          </table>
+        </div>
       </Card>
 
       <ConfirmDialog

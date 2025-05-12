@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import { useAlert } from '@/contexts/AlertContext';
 
 interface User {
   id: number;
@@ -22,13 +23,16 @@ export default function UsersPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const router = useRouter();
+  const { showAlert } = useAlert();
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         const response = await users.getAll();
         setUsers(response.data);
+        showAlert('لیست کاربران با موفقیت دریافت شد', 'success');
       } catch {
+        showAlert('خطا در دریافت لیست کاربران', 'danger');
         toast.error('خطا در دریافت لیست کاربران');
       } finally {
         setLoading(false);
@@ -36,14 +40,16 @@ export default function UsersPage() {
     };
 
     fetchUsers();
-  }, []);
+  }, [showAlert]);
 
   const handleDelete = async (id: number) => {
     try {
       await users.delete(id.toString());
       setUsers(usersList.filter(user => user.id !== id));
+      showAlert('کاربر با موفقیت حذف شد', 'success');
       toast.success('کاربر با موفقیت حذف شد');
     } catch {
+      showAlert('خطا در حذف کاربر', 'danger');
       toast.error('خطا در حذف کاربر');
     }
   };
@@ -88,6 +94,7 @@ export default function UsersPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => router.push(`/admin/users/edit/${user.id}`)}
+                          title="ویرایش"
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -98,6 +105,8 @@ export default function UsersPage() {
                             setDeleteId(user.id);
                             setConfirmOpen(true);
                           }}
+                          title="حذف"
+                          className="text-red-500 hover:text-red-700"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -106,6 +115,7 @@ export default function UsersPage() {
                           size="sm"
                           onClick={() => router.push(`/admin/consultations/reservations/new?user_id=${user.id}&user_name=${encodeURIComponent(user.name)}&user_email=${encodeURIComponent(user.email)}`)}
                           className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                          title="رزرو مشاوره"
                         >
                           رزرو مشاوره
                         </Button>
@@ -134,6 +144,7 @@ export default function UsersPage() {
       <Button
         className="fixed bottom-20 left-4 w-12 h-12 rounded-full shadow-lg"
         onClick={() => router.push('/admin/users/new')}
+        title="ایجاد کاربر جدید"
       >
         <Plus className="h-6 w-6" />
       </Button>

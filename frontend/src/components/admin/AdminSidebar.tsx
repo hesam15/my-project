@@ -3,22 +3,22 @@ import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Users, Video, FileText, BookOpen, MessageSquare, Wrench, Calendar, Clock } from 'lucide-react';
 
 const adminLinks = [
-  { href: '/admin', label: 'داشبورد', icon: LayoutDashboard },
-  { href: '/admin/users', label: 'کاربران', icon: Users },
-  { href: '/admin/videos', label: 'ویدیوها', icon: Video },
-  { href: '/admin/articles', label: 'مقالات', icon: FileText },
-  { href: '/admin/courses', label: 'دوره‌ها', icon: BookOpen },
-  { href: '/admin/comments', label: 'نظرات', icon: MessageSquare },
-  { href: '/admin/tools', label: 'ابزارها', icon: Wrench },
-  { href: '/admin/consultations', label: 'مشاوره‌ها', icon: Calendar },
-  { href: '/admin/consultations/reservations', label: 'رزرواسیون‌ها', icon: Clock },
+  { href: '/', label: 'داشبورد', icon: LayoutDashboard },
+  { href: '/users', label: 'کاربران', icon: Users },
+  { href: '/videos', label: 'ویدیوها', icon: Video },
+  { href: '/articles', label: 'مقالات', icon: FileText },
+  { href: '/courses', label: 'دوره‌ها', icon: BookOpen },
+  { href: '/comments', label: 'نظرات', icon: MessageSquare },
+  { href: '/tools', label: 'ابزارها', icon: Wrench },
+  { href: '/consultations', label: 'مشاوره‌ها', icon: Calendar },
+  { href: '/consultations/reservations', label: 'رزرواسیون‌ها', icon: Clock },
 ];
 
 export default function AdminSidebar() {
   const pathname = usePathname();
   
   return (
-    <aside className="fixed top-0 right-0 h-screen w-80 bg-white border-l shadow-lg overflow-y-auto font-sans">
+    <aside className="fixed top-0 right-0 h-screen w-80 bg-white border-l shadow-lg overflow-y-auto">
       <div className="p-6 border-b">
         <span className="font-bold text-lg">مدیریت</span>
       </div>

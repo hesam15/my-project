@@ -9,6 +9,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { toast } from 'react-hot-toast';
 import { managementTools } from '@/lib/api';
 import Image from 'next/image';
+import { useAlert } from '@/contexts/AlertContext';
 
 interface Tool {
   id: number;
@@ -24,27 +25,32 @@ export default function ToolsPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const router = useRouter();
+  const { showAlert } = useAlert();
 
   useEffect(() => {
     const fetchTools = async () => {
       try {
         const response = await managementTools.getAll();
         setTools(response.data);
+        showAlert('لیست ابزارها با موفقیت دریافت شد', 'success');
       } catch {
+        showAlert('خطا در دریافت لیست ابزارها', 'danger');
         toast.error('خطا در دریافت لیست ابزارها');
       } finally {
         setLoading(false);
       }
     };
     fetchTools();
-  }, []);
+  }, [showAlert]);
 
   const handleDelete = async (id: string) => {
     try {
       await managementTools.delete(id);
       setTools(tools.filter(tool => tool.id !== Number(id)));
+      showAlert('ابزار با موفقیت حذف شد', 'success');
       toast.success('ابزار با موفقیت حذف شد');
     } catch {
+      showAlert('خطا در حذف ابزار', 'danger');
       toast.error('خطا در حذف ابزار');
     }
   };
@@ -82,7 +88,7 @@ export default function ToolsPage() {
                 tools.map((tool) => (
                   <tr key={tool.id} className="border-b">
                     <td className="p-4">
-                      {tool.thumbnail_path && (
+                      {tool.thumbnail_path ? (
                         <Image
                           src={`${process.env.NEXT_PUBLIC_API_URL}/storage/${tool.thumbnail_path}`}
                           alt={tool.name}
@@ -90,10 +96,14 @@ export default function ToolsPage() {
                           height={48}
                           className="w-20 h-12 object-cover rounded"
                         />
+                      ) : (
+                        <div className="w-20 h-12 bg-gray-100 rounded flex items-center justify-center">
+                          <span className="text-gray-400">بدون تصویر</span>
+                        </div>
                       )}
                     </td>
                     <td className="p-4">{tool.name}</td>
-                    <td className="p-4">{tool.description}</td>
+                    <td className="p-4 max-w-xs line-clamp-2">{tool.description}</td>
                     <td className="p-4">
                       <span className={tool.is_premium ? 'text-purple-600' : 'text-green-600'}>
                         {tool.is_premium ? 'پریمیوم' : 'رایگان'}
@@ -105,6 +115,7 @@ export default function ToolsPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => router.push(`/admin/tools/${tool.id}`)}
+                          title="مشاهده جزئیات"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -112,6 +123,7 @@ export default function ToolsPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => router.push(`/admin/tools/edit/${tool.id}`)}
+                          title="ویرایش"
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -122,6 +134,8 @@ export default function ToolsPage() {
                             setDeleteId(tool.id.toString());
                             setConfirmOpen(true);
                           }}
+                          title="حذف"
+                          className="text-red-500 hover:text-red-700"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -138,13 +152,19 @@ export default function ToolsPage() {
       <ConfirmDialog
         open={confirmOpen}
         message="آیا از حذف این ابزار اطمینان دارید؟"
-        onConfirm={() => { if (deleteId !== null) handleDelete(deleteId); }}
+        onConfirm={() => {
+          if (deleteId) {
+            handleDelete(deleteId);
+            setConfirmOpen(false);
+          }
+        }}
         onCancel={() => setConfirmOpen(false)}
       />
 
       <Button
         className="fixed bottom-20 left-4 w-12 h-12 rounded-full shadow-lg"
         onClick={() => router.push('/admin/tools/new')}
+        title="ایجاد ابزار جدید"
       >
         <Plus className="h-6 w-6" />
       </Button>
