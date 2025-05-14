@@ -76,24 +76,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       setError(null);
-      const authToken = document.cookie
-        .split('; ')
-        .find((row) => row.startsWith('auth_token='))
-        ?.split('=')[1];
-      console.log('checkAuth - auth_token:', authToken);
-
-      if (!authToken) {
-        console.log('checkAuth - No auth_token found, setting user to null');
-        setUser(null);
-        return;
-      }
 
       console.log('checkAuth - Sending request to:', `${process.env.NEXT_PUBLIC_API_URL}/api/users/check`);
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/check`, {
+        method: 'GET',
         credentials: 'include',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${authToken}`,
         },
       });
 
@@ -134,17 +123,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       setError(null);
 
-      const xsrfToken = await getCsrfToken();
-      console.log('login - XSRF-TOKEN:', xsrfToken);
-
-      console.log('login - Request payload:', credentials);
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/login`, {
         method: 'POST',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'X-XSRF-TOKEN': decodeURIComponent(xsrfToken || ''),
         },
         body: JSON.stringify(credentials),
       });
@@ -159,11 +143,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const data = await response.json();
       console.log('login - Response data:', data);
-
-      if (data.token) {
-        document.cookie = `auth_token=${data.token}; path=/; max-age=86400; SameSite=Strict`;
-        console.log('login - auth_token set:', data.token);
-      }
 
       const userData = data.user || data;
       console.log('login - Extracted user data:', userData);

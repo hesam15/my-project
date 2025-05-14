@@ -25,6 +25,7 @@ interface Comment {
 interface Tool {
   id: number;
   name: string;
+  name: string;
   description: string;
   thumbnail_path: string;
   is_premium: boolean;

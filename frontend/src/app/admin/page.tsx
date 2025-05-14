@@ -36,12 +36,18 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/getAll`, { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => setStats(data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/getAll`, {
+    method: 'GET',
+    credentials: 'include',
+    headers: {
+      'Accept': 'application/json',
+    },
+  })
+    .then(res => res.json())
+    .then(data => setStats(data))
+    .catch(() => {})
+    .finally(() => setLoading(false));
+}, []);
 
   const statCards: StatCard[] = [
     {

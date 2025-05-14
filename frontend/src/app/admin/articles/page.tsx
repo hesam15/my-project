@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { posts } from '@/lib/api';
-import { Plus } from 'lucide-react';
+import { Eye, Pencil, Trash2, Crown, Plus, ArrowUpDown } from 'lucide-react';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Image from 'next/image';
 import { useAlert } from '@/contexts/AlertContext';

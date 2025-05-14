@@ -186,4 +186,39 @@ export default function Comments({
       <div className="space-y-4">
         {comments.length > 0 ? (
           comments.map((comment, index) => (
-            <div key={`
+            <div key={comment.id || index} className={`p-4 border rounded-lg ${index < comments.length - 1 ? 'mb-4' : ''} ${comment.active ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50'}`}>
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-bold text-gray-800">{comment.user?.name || 'کاربر'}</h3>
+                  <p className="text-sm text-gray-500">{formatDate(comment.created_at)}</p>
+                </div>
+                {isAdmin && onCommentStatusChanged && (
+                  <button
+                    onClick={() => handleStatusChange(comment.id, !!comment.active)}
+                    disabled={changingStatus === comment.id}
+                    className={`px-3 py-1 text-sm rounded-md ${comment.active ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'} hover:opacity-80 transition-opacity disabled:opacity-50`}
+                  >
+                    {changingStatus === comment.id ? (
+                      'در حال تغییر...'
+                    ) : comment.active ? (
+                      'غیرفعال کردن'
+                    ) : (
+                      'فعال کردن'
+                    )}
+                  </button>
+                )}
+              </div>
+              <h4 className="font-semibold text-gray-700 mt-2">{comment.title}</h4>
+              <p className="text-gray-600 mt-1 whitespace-pre-line">{comment.content}</p>
+              {!comment.active && (
+                <p className="text-sm text-yellow-600 mt-2">این نظر هنوز تأیید نشده است</p>
+              )}
+            </div>
+          ))
+        ) : (
+          <p className="text-gray-500 text-center py-4">هنوز نظری ثبت نشده است</p>
+        )}
+      </div>
+    </div>
+  )
+}

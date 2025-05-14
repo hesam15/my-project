@@ -89,10 +89,6 @@ export default function CoursePage({ params }: CoursePageProps) {
     fetchCourse()
   }, [resolvedParams.slug, user])
 
-  useEffect(() => {
-    generateTimeSlots();
-  }, [generateTimeSlots]);
-
   const handleLike = async () => {
     if (!courseData || isLiking || !user) return;
 

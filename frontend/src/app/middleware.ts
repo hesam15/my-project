@@ -1,6 +1,7 @@
 // middleware.ts
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import './global.css'
 
 export function middleware(request: NextRequest) {
   const url = request.nextUrl.clone()

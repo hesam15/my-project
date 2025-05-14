@@ -1,6 +1,7 @@
 // app/template.tsx
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AlertProvider } from '@/contexts/AlertContext';
+import './globals.css'
 
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
