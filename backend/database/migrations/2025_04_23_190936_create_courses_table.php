@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('courses', function (Blueprint $table) {
             $table->id();
             $table->string('title');
-            $table->text('description')->nullable();
+            $table->longText('description')->nullable();
             $table->string('thumbnail_path')->nullable();
             $table->boolean('is_premium')->default(false);
             $table->foreignId('user_id');

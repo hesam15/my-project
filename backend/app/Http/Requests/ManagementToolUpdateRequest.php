@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Models\ManagementTool;
+use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -41,8 +43,10 @@ class ManagementToolUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
+        $toolId = $this->route('tool');
+
         return [
-            'name' => 'required|string|unique:managemant-tools',
+            'name' => ['required', 'string', Rule::unique('management_tools', 'name')->ignore($toolId)],
             'description' => 'nullable|string',
             'tool_path' => [
                 'required',
@@ -53,7 +57,7 @@ class ManagementToolUpdateRequest extends FormRequest
                             $fail('فایل باید از نوع PDF باشد.');
                         }
                     } elseif (is_string($value)) {
-                        if (!preg_match('/^videos\/[0-9]+\/[a-zA-Z0-9_\-\.]+\.pdf$/', $value)) {
+                        if (!preg_match('/^tools\/[0-9]+\/[a-zA-Z0-9_\-\.]+\.pdf$/', $value)) {
                             $fail('مسیر فایل PDF فعلی معتبر نیست.');
                         }
                     } else {

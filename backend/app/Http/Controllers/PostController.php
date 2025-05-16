@@ -51,6 +51,25 @@ class PostController extends Controller
         ]);
     }
 
+    public function update(PostRequest $request, Post $post) {
+        $thumbnailPath = ThumbnailStorageService::store($request->thumbnail_path, $this->user, 'post');
+
+        $post->update([
+            'title' => $request->title,
+            'content' => $request->content,
+            'thumbnail_path' => $thumbnailPath,
+            'is_premium' => boolval($request->is_premium),
+            'user_id' => $this->user->id
+        ]);
+
+        $post->categories()->attach($request->category_id);
+
+        return response([
+            'message' => 'مقاله با موفقیت اضافه شد',
+            'post' => $post
+        ]);
+    }
+
     public function destroy(Post $post) {
         Storage::disk('public')->delete($post->thumbnail_path);
 

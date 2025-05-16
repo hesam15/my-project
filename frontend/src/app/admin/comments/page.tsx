@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Eye, Trash2, Check, X, RotateCw, BookOpen, Play } from 'lucide-react';
+import { Eye, Trash2, Check, X, RotateCw, BookOpen, Play, Wrench, PhoneCall, GraduationCap } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { comments } from '@/lib/api';
 import { toast } from 'sonner';
@@ -10,39 +10,56 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Image from 'next/image';
 import { useAlert } from '@/contexts/AlertContext';
 
+interface Commentable {
+  id: number;
+  title: string;
+  thumbnail_path?: string;
+  content?: string;
+  name?: string; // For tools and consultations that might use name instead of title
+}
+
 interface Comment {
   id: number;
+  title: string;
   content: string;
   user: {
     id: number;
     name: string;
     avatar?: string;
   };
-  post?: {
-    id: number;
-    title: string;
-    thumbnail_path?: string;
-  };
-  video?: {
-    id: number;
-    title: string;
-    thumbnail_path?: string;
-  };
-  active: boolean;
+  commentable_type: string;
+  commentable_id: number;
+  commentable?: Commentable;
+  status: 'active' | 'notActive' | 'rejected';
   created_at: string;
-  title?: string;
 }
 
 // Helper Components
-const StatusBadge = ({ active }: { active: boolean }) => (
-  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-    active 
-      ? 'bg-green-100 text-green-800' 
-      : 'bg-yellow-100 text-yellow-800'
-  }`}>
-    {active ? 'فعال' : 'غیرفعال'}
-  </span>
-);
+const StatusBadge = ({ status }: { status: string }) => {
+  const config = {
+    active: {
+      className: 'bg-green-100 text-green-800',
+      text: 'فعال'
+    },
+    notActive: {
+      className: 'bg-yellow-100 text-yellow-800',
+      text: 'در انتظار تایید'
+    },
+    rejected: {
+      className: 'bg-red-100 text-red-800',
+      text: 'رد شده'
+    }
+  }[status as 'active' | 'notActive' | 'rejected'] || {
+    className: 'bg-gray-100 text-gray-800',
+    text: 'نامشخص'
+  };
+
+  return (
+    <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.className}`}>
+      {config.text}
+    </span>
+  );
+};
 
 const ActionButton = ({ 
   variant,
@@ -106,6 +123,18 @@ export default function CommentsPage() {
     try {
       const response = await comments.getAll();
       setCommentList(response.data);
+      
+      // Check for pending comments and notify
+      const pendingComments = response.data.filter(comment => comment.status === 'notActive');
+      if (pendingComments.length > 0) {
+        toast.warning(`${pendingComments.length} نظر در انتظار تایید وجود دارد`);
+      }
+      
+      // Check for rejected comments and notify
+      const rejectedComments = response.data.filter(comment => comment.status === 'rejected');
+      if (rejectedComments.length > 0) {
+        toast.error(`${rejectedComments.length} نظر رد شده وجود دارد`);
+      }
     } catch {
       showAlert('خطا در دریافت لیست نظرات', 'danger');
       toast.error('خطا در دریافت لیست نظرات');
@@ -114,14 +143,24 @@ export default function CommentsPage() {
     }
   };
 
-  const handleStatusChange = async (id: number, status: boolean) => {
-    setStatusLoading({id, type: status ? 'approve' : 'reject'});
+  const handleStatusChange = async (id: number, status: 'active' | 'notActive' | 'rejected') => {
+    setStatusLoading({id, type: status === 'active' ? 'approve' : 'reject'});
     try {
+      // Pass the string status directly to the API
       await comments.changeStatus(id.toString(), status);
+      
+      if (status === 'active') {
+        showAlert('نظر با موفقیت تایید شد', 'success');
+        toast.success('نظر با موفقیت تایید شد');
+      } else if (status === 'rejected') {
+        showAlert('نظر رد شد', 'info');
+        toast.warning('نظر رد شد');
+      } else {
+        showAlert('وضعیت نظر تغییر کرد', 'info');
+        toast.info('وضعیت نظر تغییر کرد');
+      }
+      
       await fetchComments();
-      const message = status ? 'نظر تایید شد' : 'نظر رد شد';
-      showAlert(message, 'success');
-      toast.success(message);
     } catch {
       showAlert('خطا در تغییر وضعیت نظر', 'danger');
       toast.error('خطا در تغییر وضعیت نظر');
@@ -136,10 +175,143 @@ export default function CommentsPage() {
       setCommentList(commentList.filter(comment => comment.id !== id));
       showAlert('نظر با موفقیت حذف شد', 'success');
       toast.success('نظر با موفقیت حذف شد');
+      
+      // Check if this was the last comment
+      if (commentList.length === 1) {
+        toast.info('تمام نظرات مدیریت شدند');
+      }
     } catch {
       showAlert('خطا در حذف نظر', 'danger');
       toast.error('خطا در حذف نظر');
     }
+  };
+
+  const getNextStatus = (currentStatus: string) => {
+    if (currentStatus === 'active') return 'rejected';
+    return 'active';
+  };
+
+  // Helper function to determine the commentable type
+  const getCommentableType = (comment: Comment) => {
+    if (!comment.commentable_type) return null;
+    
+    const type = comment.commentable_type.toLowerCase();
+    if (type.includes('post')) return 'post';
+    if (type.includes('video')) return 'video';
+    if (type.includes('managementtool')) return 'tool';
+    if (type.includes('consultation')) return 'consultation';
+    if (type.includes('course')) return 'course';
+    return null;
+  };
+
+  // Helper function to get the title of the commentable
+  const getCommentableTitle = (comment: Comment) => {
+    if (!comment.commentable) return 'بدون عنوان';
+    
+    // Some entities use title, others use name
+    return comment.commentable.title || comment.commentable.name || 'بدون عنوان';
+  };
+
+  // Helper function to render the appropriate icon and text for commentable
+  const renderCommentableInfo = (comment: Comment) => {
+    if (!comment.commentable) return <span className="text-sm text-gray-500">بدون منبع</span>;
+    
+    const type = getCommentableType(comment);
+    const title = getCommentableTitle(comment);
+    
+    if (type === 'post') {
+      return (
+        <div className="flex items-center gap-2">
+          <div className="relative w-8 h-8 rounded overflow-hidden bg-gray-100">
+            {comment.commentable.thumbnail_path ? (
+              <Image
+                src={`${process.env.NEXT_PUBLIC_API_URL}/storage/${comment.commentable.thumbnail_path}`}
+                alt={title}
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <BookOpen className="w-4 h-4 text-gray-400 m-auto" />
+            )}
+          </div>
+          <span className="text-sm">مقاله: {title}</span>
+        </div>
+      );
+    } else if (type === 'video') {
+      return (
+        <div className="flex items-center gap-2">
+          <div className="relative w-8 h-8 rounded overflow-hidden bg-gray-100">
+            {comment.commentable.thumbnail_path ? (
+              <Image
+                src={`${process.env.NEXT_PUBLIC_API_URL}/storage/${comment.commentable.thumbnail_path}`}
+                alt={title}
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <Play className="w-4 h-4 text-gray-400 m-auto" />
+            )}
+          </div>
+          <span className="text-sm">ویدیو: {title}</span>
+        </div>
+      );
+    } else if (type === 'tool') {
+      return (
+        <div className="flex items-center gap-2">
+          <div className="relative w-8 h-8 rounded overflow-hidden bg-gray-100">
+            {comment.commentable.thumbnail_path ? (
+              <Image
+                src={`${process.env.NEXT_PUBLIC_API_URL}/storage/${comment.commentable.thumbnail_path}`}
+                alt={title}
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <Wrench className="w-4 h-4 text-gray-400 m-auto" />
+            )}
+          </div>
+          <span className="text-sm">ابزار مدیریتی: {title}</span>
+        </div>
+      );
+    } else if (type === 'consultation') {
+      return (
+        <div className="flex items-center gap-2">
+          <div className="relative w-8 h-8 rounded overflow-hidden bg-gray-100">
+            {comment.commentable.thumbnail_path ? (
+              <Image
+                src={`${process.env.NEXT_PUBLIC_API_URL}/storage/${comment.commentable.thumbnail_path}`}
+                alt={title}
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <PhoneCall className="w-4 h-4 text-gray-400 m-auto" />
+            )}
+          </div>
+          <span className="text-sm">مشاوره: {title}</span>
+        </div>
+      );
+    } else if (type === 'course') {
+      return (
+        <div className="flex items-center gap-2">
+          <div className="relative w-8 h-8 rounded overflow-hidden bg-gray-100">
+            {comment.commentable.thumbnail_path ? (
+              <Image
+                src={`${process.env.NEXT_PUBLIC_API_URL}/storage/${comment.commentable.thumbnail_path}`}
+                alt={title}
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <GraduationCap className="w-4 h-4 text-gray-400 m-auto" />
+            )}
+          </div>
+          <span className="text-sm">دوره: {title}</span>
+        </div>
+      );
+    }
+    
+    return <span className="text-sm text-gray-500">منبع نامشخص</span>;
   };
 
   if (loading) {
@@ -196,63 +368,32 @@ export default function CommentsPage() {
                       </div>
                     </td>
                     <td className="p-4">
-                      <div className="line-clamp-2 max-w-xs">{comment.content}</div>
+                      <div className="line-clamp-2 max-w-xs">
+                        <span className="font-medium text-gray-700 block mb-1">{comment.title}</span>
+                        {comment.content}
+                      </div>
                     </td>
                     <td className="p-4">
-                      {comment.post ? (
-                        <div className="flex items-center gap-2">
-                          <div className="relative w-8 h-8 rounded overflow-hidden bg-gray-100">
-                            {comment.post.thumbnail_path ? (
-                              <Image
-                                src={`${process.env.NEXT_PUBLIC_API_URL}/storage/${comment.post.thumbnail_path}`}
-                                alt={comment.post.title}
-                                fill
-                                className="object-cover"
-                              />
-                            ) : (
-                              <BookOpen className="w-4 h-4 text-gray-400 m-auto" />
-                            )}
-                          </div>
-                          <span className="text-sm">مقاله: {comment.post.title}</span>
-                        </div>
-                      ) : comment.video ? (
-                        <div className="flex items-center gap-2">
-                          <div className="relative w-8 h-8 rounded overflow-hidden bg-gray-100">
-                            {comment.video.thumbnail_path ? (
-                              <Image
-                                src={`${process.env.NEXT_PUBLIC_API_URL}/storage/${comment.video.thumbnail_path}`}
-                                alt={comment.video.title}
-                                fill
-                                className="object-cover"
-                              />
-                            ) : (
-                              <Play className="w-4 h-4 text-gray-400 m-auto" />
-                            )}
-                          </div>
-                          <span className="text-sm">ویدیو: {comment.video.title}</span>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-gray-500">بدون منبع</span>
-                      )}
+                      {renderCommentableInfo(comment)}
                     </td>
                     <td className="p-4">
                       {new Date(comment.created_at).toLocaleDateString('fa-IR')}
                     </td>
                     <td className="p-4">
-                      <StatusBadge active={comment.active} />
+                      <StatusBadge status={comment.status} />
                     </td>
                     <td className="p-4">
                       <div className="flex gap-2">
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleStatusChange(comment.id, !comment.active)}
-                          title={comment.active ? 'غیرفعال کردن' : 'فعال کردن'}
+                          onClick={() => handleStatusChange(comment.id, getNextStatus(comment.status) as 'active' | 'notActive' | 'rejected')}
+                          title={comment.status === 'active' ? 'رد کردن' : 'تایید کردن'}
                           disabled={!!statusLoading}
                         >
                           {statusLoading?.id === comment.id ? (
                             <RotateCw className="h-4 w-4 animate-spin" />
-                          ) : comment.active ? (
+                          ) : comment.status === 'active' ? (
                             <X className="h-4 w-4 text-yellow-600" />
                           ) : (
                             <Check className="h-4 w-4 text-green-600" />
@@ -312,17 +453,16 @@ export default function CommentsPage() {
                 <div className="text-gray-900 text-base">{selectedComment.user.name}</div>
               </div>
               
-              {selectedComment.post && (
+              {selectedComment.commentable && (
                 <div className="space-y-1">
-                  <span className="font-semibold text-gray-700 text-sm">مقاله:</span>
-                  <div className="text-gray-900 text-base">{selectedComment.post.title}</div>
-                </div>
-              )}
-              
-              {selectedComment.video && (
-                <div className="space-y-1">
-                  <span className="font-semibold text-gray-700 text-sm">ویدیو:</span>
-                  <div className="text-gray-900 text-base">{selectedComment.video.title}</div>
+                  <span className="font-semibold text-gray-700 text-sm">
+                    {getCommentableType(selectedComment) === 'post' ? 'مقاله:' : 
+                     getCommentableType(selectedComment) === 'video' ? 'ویدیو:' :
+                     getCommentableType(selectedComment) === 'tool' ? 'ابزار مدیریتی:' :
+                     getCommentableType(selectedComment) === 'consultation' ? 'مشاوره:' :
+                     getCommentableType(selectedComment) === 'course' ? 'دوره:' : 'منبع:'}
+                  </span>
+                  <div className="text-gray-900 text-base">{getCommentableTitle(selectedComment)}</div>
                 </div>
               )}
               
@@ -330,6 +470,13 @@ export default function CommentsPage() {
                 <span className="font-semibold text-gray-700 text-sm">تاریخ:</span>
                 <div className="text-gray-900 text-base">
                   {new Date(selectedComment.created_at).toLocaleDateString('fa-IR')}
+                </div>
+              </div>
+              
+              <div className="space-y-1">
+                <span className="font-semibold text-gray-700 text-sm">وضعیت:</span>
+                <div className="text-gray-900 text-base">
+                  <StatusBadge status={selectedComment.status} />
                 </div>
               </div>
               
@@ -352,12 +499,12 @@ export default function CommentsPage() {
               <ActionButton
                 variant="reject"
                 loading={statusLoading?.id === selectedComment.id && statusLoading.type === 'reject'}
-                onClick={() => handleStatusChange(selectedComment.id, false)}
+                onClick={() => handleStatusChange(selectedComment.id, 'rejected')}
               />
               <ActionButton
                 variant="approve"
                 loading={statusLoading?.id === selectedComment.id && statusLoading.type === 'approve'}
-                onClick={() => handleStatusChange(selectedComment.id, true)}
+                onClick={() => handleStatusChange(selectedComment.id, 'active')}
               />
             </div>
           </div>

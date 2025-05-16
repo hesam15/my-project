@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('management_tools', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('description');
+            $table->longText('description');
             $table->string('tool_path');
             $table->string('thumbnail_path')->nullable();
             $table->boolean('is_premium')->default(false);

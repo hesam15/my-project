@@ -29,6 +29,7 @@ class ManagementToolController extends Controller
     }
 
     public function show(ManagementTool $tool) {
+        $tool = ManagementTool::with('comments')->findOrFail($tool->id);
         return response()->json($tool);
     }
 

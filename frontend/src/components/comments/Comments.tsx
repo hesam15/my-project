@@ -6,7 +6,7 @@ import { useAuthContext } from '@/contexts/AuthContext'
 import moment from 'jalali-moment'
 import { CommentableType } from '@/constants/models'
 import { useAlert } from '@/contexts/AlertContext'
-import { comments } from '@/lib/api'
+import { comments as commentsApi } from '@/lib/api'
 
 interface Comment {
   id: number
@@ -14,7 +14,7 @@ interface Comment {
   title: string
   content: string
   created_at: string
-  active?: boolean
+  status: 'active' | 'notActive' | 'rejected'
   user?: { name: string }
 }
 
@@ -23,7 +23,7 @@ interface CommentsProps {
   commentableId: number
   commentableType: CommentableType
   onCommentAdded: (comment: Comment) => void
-  onCommentStatusChanged?: (commentId: number, active: boolean) => void
+  onCommentStatusChanged?: (commentId: number, status: 'active' | 'notActive' | 'rejected') => void
   isAdmin?: boolean
 }
 
@@ -79,16 +79,16 @@ export default function Comments({
       }
       console.log('Submitting comment with payload:', payload)
 
-      const response = await comments.create(payload)
+      const response = await commentsApi.create(payload)
       const responseData = response.data
 
       const newComment: Comment = {
         id: responseData.id,
         user_id: user.id,
-        title: responseData.title,
-        content: responseData.content,
+        title: commentTitle,
+        content: commentContent,
         created_at: responseData.created_at || new Date().toISOString(),
-        active: responseData.active ?? false,
+        status: responseData.status || 'notActive',
         user: { name: user.name || 'کاربر' },
       }
       onCommentAdded(newComment)
@@ -102,47 +102,64 @@ export default function Comments({
     }
   }
 
-  const handleStatusChange = async (commentId: number, currentStatus: boolean) => {
+  const handleStatusChange = async (commentId: number, currentStatus: string) => {
     if (!isAdmin || changingStatus === commentId) return
 
     setChangingStatus(commentId)
     try {
-      console.log('Changing status for comment:', commentId, 'to:', !currentStatus)
+      // Toggle between active and rejected
+      const newStatus = currentStatus === 'active' ? 'rejected' : 'active'
+      const response = await commentsApi.changeStatus(commentId.toString(), newStatus)
 
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      }
-      if (user?.token) {
-        headers['Authorization'] = `Bearer ${user.token}`
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/comments/${commentId}/status`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ active: !currentStatus }),
-        credentials: 'include',
-      })
-
-      const responseData = await response.json()
-      console.log('Status change API response:', responseData)
-
-      if (!response.ok) {
-        throw new Error(responseData.message || `HTTP error! status: ${response.status}`)
+      if (response.status !== 200) {
+        throw new Error('خطا در تغییر وضعیت نظر')
       }
 
-      onCommentStatusChanged?.(commentId, !currentStatus)
-      showAlert('وضعیت نظر با موفقیت تغییر کرد', 'success')
+      onCommentStatusChanged?.(commentId, newStatus)
+      
+      if (newStatus === 'active') {
+        showAlert('نظر با موفقیت فعال شد', 'success')
+      } else {
+        showAlert('نظر با موفقیت غیرفعال شد', 'warning')
+      }
     } catch (error: any) {
-      console.error('Error changing comment status:', error, {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        stack: error.stack,
-      })
+      console.error('Error changing comment status:', error)
       showAlert(error.message || 'خطا در تغییر وضعیت نظر', 'danger')
     } finally {
       setChangingStatus(null)
     }
+  }
+
+  // فیلتر کردن کامنت‌ها برای نمایش
+  const filteredComments = comments.filter(comment => 
+    comment.status === 'active' || // کامنت‌های فعال
+    (user && comment.user_id === user.id) || // کامنت‌های خود کاربر
+    isAdmin // همه کامنت‌ها برای ادمین
+  )
+
+  // تعیین کلاس‌های CSS براساس وضعیت نظر
+  const getCommentClasses = (status: string) => {
+    switch(status) {
+      case 'active':
+        return 'border-gray-200 bg-white';
+      case 'rejected':
+        return 'border-red-100 bg-red-50';
+      case 'notActive':
+      default:
+        return 'border-gray-100 bg-gray-50';
+    }
+  }
+
+  // نمایش پیام وضعیت برای کاربر
+  const getStatusMessage = (comment: Comment) => {
+    if (user?.id === comment.user_id) {
+      if (comment.status === 'notActive') {
+        return <p className="text-sm text-yellow-600 mt-2">این نظر در انتظار تأیید است و فقط برای شما قابل مشاهده است</p>;
+      } else if (comment.status === 'rejected') {
+        return <p className="text-sm text-red-600 mt-2">این نظر رد شده است و فقط برای شما قابل مشاهده است</p>;
+      }
+    }
+    return null;
   }
 
   return (
@@ -184,9 +201,12 @@ export default function Comments({
         </p>
       )}
       <div className="space-y-4">
-        {comments.length > 0 ? (
-          comments.map((comment, index) => (
-            <div key={comment.id || index} className={`p-4 border rounded-lg ${index < comments.length - 1 ? 'mb-4' : ''} ${comment.active ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50'}`}>
+        {filteredComments.length > 0 ? (
+          filteredComments.map((comment, index) => (
+            <div 
+              key={comment.id || index} 
+              className={`p-4 border rounded-lg ${index < comments.length - 1 ? 'mb-4' : ''} ${getCommentClasses(comment.status)}`}
+            >
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="font-bold text-gray-800">{comment.user?.name || 'کاربر'}</h3>
@@ -194,13 +214,17 @@ export default function Comments({
                 </div>
                 {isAdmin && onCommentStatusChanged && (
                   <button
-                    onClick={() => handleStatusChange(comment.id, !!comment.active)}
+                    onClick={() => handleStatusChange(comment.id, comment.status)}
                     disabled={changingStatus === comment.id}
-                    className={`px-3 py-1 text-sm rounded-md ${comment.active ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'} hover:opacity-80 transition-opacity disabled:opacity-50`}
+                    className={`px-3 py-1 text-sm rounded-md ${
+                      comment.status === 'active' 
+                        ? 'bg-red-100 text-red-600' 
+                        : 'bg-green-100 text-green-600'
+                    } hover:opacity-80 transition-opacity disabled:opacity-50`}
                   >
                     {changingStatus === comment.id ? (
                       'در حال تغییر...'
-                    ) : comment.active ? (
+                    ) : comment.status === 'active' ? (
                       'غیرفعال کردن'
                     ) : (
                       'فعال کردن'
@@ -210,9 +234,7 @@ export default function Comments({
               </div>
               <h4 className="font-semibold text-gray-700 mt-2">{comment.title}</h4>
               <p className="text-gray-600 mt-1 whitespace-pre-line">{comment.content}</p>
-              {!comment.active && (
-                <p className="text-sm text-yellow-600 mt-2">این نظر هنوز تأیید نشده است</p>
-              )}
+              {getStatusMessage(comment)}
             </div>
           ))
         ) : (

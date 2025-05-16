@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use App\Models\Consultation;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Request as FacadeRequest;
 use App\Models\ConsultationReservation;
 use Laravel\Sanctum\PersonalAccessToken;
 use App\Http\Requests\ConsultationResevationRequest;
-use App\Models\Consultation;
+use Illuminate\Support\Facades\Request as FacadeRequest;
 
 class ConsultationResevationController extends Controller
 {
@@ -21,9 +22,12 @@ class ConsultationResevationController extends Controller
     }
     
     public function index() {
+        checkPastReservationTimes();
+
         $consultationReservations = ConsultationReservation::query()
             ->orderBy('date', 'asc') // مرتب‌سازی بر اساس تاریخ
             ->orderBy('time', 'asc') // مرتب‌سازی بر اساس ساعت
+            ->with('user')
             ->get();
     
         return response()->json($consultationReservations);
@@ -33,12 +37,24 @@ class ConsultationResevationController extends Controller
         return response()->json($reservation);
     }
 
-    public function store(ConsultationResevationRequest $request) {        
+    public function store(ConsultationResevationRequest $request) {
+        $user = $this->user;
+
+        if($this->user->is_admin()) {
+            $user = User::where('phone', $request->user_phone)->first();
+            
+            if (!$user) {
+                return response()->json([
+                    'message' => 'هیچ کاربری با این شماره تلفن وجود ندارد'
+                ], 403);
+            }
+        }
+        
         $consultationReserve = ConsultationReservation::create([
             'date' => $request->date,
             'time' => $request->time,
             'consultation_id' => $request->consultation_id,
-            'user_id' => $this->user->id
+            'user_id' => $user->id
         ]);
 
         return response()->json([
@@ -56,7 +72,12 @@ class ConsultationResevationController extends Controller
     }
 
     public function availableTimes(Request $request, Consultation $consultation) {
-        $consultationReserves = ConsultationReservation::where('date', $request->query('date'))->where('consultation_id', $consultation->id)->get();
+        checkPastReservationTimes();
+
+        $consultationReserves = ConsultationReservation::where('date', $request->query('date'))
+            ->where('consultation_id', $consultation->id)
+            ->where('status', 'pending')
+            ->get();
         $reservedTimes = [];
 
         $consultationTimes = explode('-', $consultation->active_times);

@@ -15,9 +15,9 @@ return new class extends Migration
             $table->id();
             $table->string('date');
             $table->string('time', 5);
-            $table->foreignId('user_id');
-            $table->foreignId('consultation_id');
-            $table->enum('status', ['pending', 'done', 'canceled'])->default('pending');
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('consultation_id')->constrained()->cascadeOnDelete();
+            $table->enum('status', ['pending', 'done', 'canceled', 'pasted'])->default('pending');
             $table->timestamps();
         });
     }

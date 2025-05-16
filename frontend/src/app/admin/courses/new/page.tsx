@@ -1,134 +1,193 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { useAlert } from '@/contexts/AlertContext';
+import { Card } from '@/components/ui/card';
+import { ArrowRight, Loader2, Upload } from 'lucide-react';
+import Image from 'next/image';
 
 export default function NewCoursePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [thumbnail, setThumbnail] = useState<File | null>(null);
-  const { showAlert } = useAlert();
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  // Clean up the object URL when component unmounts or when the thumbnail changes
+  useEffect(() => {
+    return () => {
+      if (thumbnailPreview) {
+        URL.revokeObjectURL(thumbnailPreview);
+      }
+    };
+  }, [thumbnailPreview]);
+
+  // Handle thumbnail file change
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    
+    // Clean up previous preview URL if it exists
+    if (thumbnailPreview) {
+      URL.revokeObjectURL(thumbnailPreview);
+    }
+    
+    if (file) {
+      setThumbnail(file);
+      const previewUrl = URL.createObjectURL(file);
+      setThumbnailPreview(previewUrl);
+    } else {
+      setThumbnail(null);
+      setThumbnailPreview(null);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
+
     try {
-      const formData = new FormData(e.currentTarget);
-      formData.append('is_premium', isPremium.toString());
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('description', description);
+      formData.append('is_premium', isPremium ? '1' : '0');
+      
       if (thumbnail) {
         formData.append('thumbnail_path', thumbnail);
       }
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses`, {
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses`, {
         method: 'POST',
         credentials: 'include',
         body: formData,
       });
-      showAlert('دوره با موفقیت ایجاد شد', 'success');
-      router.push('/admin/courses');
-    } catch {
-      showAlert('خطا در ایجاد دوره', 'danger');
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'خطا در ایجاد دوره');
+      }
+
+      router.push('/courses');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'خطا در ایجاد دوره');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Suspense fallback={<div>در حال بارگذاری...</div>}>
-      <div className="space-y-6 w-full px-0 py-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>ایجاد دوره جدید</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">عنوان</Label>
-                <Input
-                  id="title"
-                  name="title"
-                  required
-                />
-              </div>
+    <div className="space-y-6 w-full px-0">
+      <Card className="p-6">
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-6">
+            {error}
+          </div>
+        )}
 
-              <div className="space-y-2">
-                <Label htmlFor="description">توضیحات</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  required
-                  className="min-h-[200px]"
-                />
-              </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="title">عنوان دوره</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="thumbnail_path">تصویر بندانگشتی</Label>
+            <div>
+              <Label htmlFor="description">توضیحات</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                required
+                rows={5}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="thumbnail_path">تصویر دوره</Label>
+              
+              {/* Only show the preview if a thumbnail has been selected */}
+              {thumbnailPreview && (
+                <div className="mt-2 mb-4">
+                  <div className="relative w-48 h-32 overflow-hidden rounded-md">
+                    <Image
+                      src={thumbnailPreview}
+                      alt="پیش‌نمایش تصویر"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex items-center gap-2 mt-2">
+                <label 
+                  htmlFor="thumbnail_path" 
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md cursor-pointer transition-colors"
+                >
+                  <Upload className="h-4 w-4" />
+                  <span>انتخاب تصویر</span>
+                </label>
                 <input
                   type="file"
                   id="thumbnail_path"
                   name="thumbnail_path"
                   accept="image/*"
-                  onChange={(e) => setThumbnail(e.target.files?.[0] || null)}
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                  onChange={handleThumbnailChange}
+                  className="hidden"
                 />
                 {thumbnail && (
-                  <div className="mt-2">
-                    <img
-                      src={URL.createObjectURL(thumbnail)}
-                      alt="Preview"
-                      className="w-32 h-32 object-cover rounded-lg"
-                    />
-                  </div>
+                  <span className="text-sm text-green-600">
+                    {thumbnail.name}
+                  </span>
                 )}
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="is_premium">پریمیوم</Label>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="is_premium"
-                    name="is_premium"
-                    checked={isPremium}
-                    onCheckedChange={setIsPremium}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out ${
-                      isPremium ? 'bg-green-500' : 'bg-gray-300'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out ${
-                        isPremium ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </Switch>
-                  <span className={isPremium ? 'text-green-500' : 'text-gray-500'}>
-                    {isPremium ? 'فعال' : 'غیرفعال'}
-                  </span>
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="is_premium">پریمیوم</Label>
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <Switch
+                  id="is_premium"
+                  checked={isPremium}
+                  onCheckedChange={setIsPremium}
+                />
+                <span className={isPremium ? 'text-green-500' : 'text-gray-500'}>
+                  {isPremium ? 'فعال' : 'غیرفعال'}
+                </span>
               </div>
+            </div>
+          </div>
 
-              <div className="flex justify-end space-x-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.push('/admin/courses')}
-                >
-                  انصراف
-                </Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? 'در حال ذخیره...' : 'ذخیره'}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    </Suspense>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                  در حال ذخیره...
+                </>
+              ) : (
+                <>
+                  ایجاد دوره
+                  <ArrowRight className="mr-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </Card>
+    </div>
   );
 }

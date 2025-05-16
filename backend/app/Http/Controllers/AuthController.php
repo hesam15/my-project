@@ -8,6 +8,7 @@ use App\Models\Balance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Requests\UserStoreRequest;
+use Illuminate\Support\Facades\Cookie;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
@@ -32,7 +33,7 @@ class AuthController extends Controller
         return response()->json([
             'user' => $user,
             'message' => 'ثبت نام با موفقیت انجام شد' 
-        ])->cookie('auth_token', $token, 1440, null, null, true, true, false, 'Strict');
+        ])->cookie('auth_token', $token, 1440, '/', null, false, true, false, 'None');
     }
 
     public function login(Request $request)
@@ -45,11 +46,12 @@ class AuthController extends Controller
             }
     
             $token = $user->createToken('auth_token');
+
     
             return response()->json([
                 'user' => $user,
                 'message' => 'ورود با موفقیت انجام شد'
-            ])->cookie('auth_token', $token->plainTextToken, 1440, '/', null, false, false, false, 'Strict');
+                ])->cookie('auth_token', $token->plainTextToken, 1440, '/', null, true, true, false, 'None');
         }
     
         return response()->json([
@@ -73,7 +75,10 @@ class AuthController extends Controller
     public function check(Request $request) {
         $token = PersonalAccessToken::findToken($request->cookie('auth_token'));
 
-        $user = $token->tokenable;
+        $user = $token->tokenable->load(['consultationReservations' => function($query) {
+            $query->orderBy('date', 'asc')
+                  ->orderBy('time', 'asc');
+        }]);
 
         return $user ? response()->json(['user' => $user]) : response()->json(['message' => 'کاربر خارج شده است']);
     }

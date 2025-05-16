@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
@@ -38,6 +39,12 @@ interface Consultant {
     name: string
     expertise: string
   }
+}
+
+// Function to truncate text with ellipsis
+const truncateText = (text: string, maxLength: number = 100): string => {
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength) + '...';
 }
 
 export default function ConsultationPage() {
@@ -155,7 +162,7 @@ export default function ConsultationPage() {
           <div className="relative z-10">
             <h2 className="text-lg font-bold mb-4 text-white">مشاوره تخصصی مدیریت</h2>
             <p className="text-sm leading-6 text-white">
-              در دنیای پیچیده کسب و کار امروز، داشتن یک مشاور متخصص می‌تواند تفاوت بزرگی در موفقیت شما ایجاد کند. تیم مشاوران ما با تجربه و دانش تخصصی، آماده هستند تا در مسیر رشد و توسعه کسب و کار شما را همراهی کنند.
+              در دنیای پیچیده کسب و کار امروز، داشتن یک مشاور متخصص می‌تواند تفاوت بزرگی در موفقیت شما ایجاد کند. تیم مشاوران ما آماده همراهی شما هستند.
             </p>
           </div>
           <div className="absolute inset-0 z-0">
@@ -197,7 +204,10 @@ export default function ConsultationPage() {
                       <p className="font-medium">{consultant.consultant.name}</p>
                       <p className="text-gray-500">{consultant.consultant.expertise}</p>
                     </div>
-                    <p className="text-sm text-gray-600">{consultant.description}</p>
+                    <p className="text-sm text-gray-600">
+                      {truncateText(consultant.description, 80)}
+                      <span className="text-blue-500 mr-1">ادامه مطلب</span>
+                    </p>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-gray-600">

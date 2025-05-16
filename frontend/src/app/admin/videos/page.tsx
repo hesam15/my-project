@@ -47,7 +47,6 @@ export default function VideosPage() {
       try {
         const response = await videos.getAll();
         setVideos(response.data);
-        showAlert('لیست ویدیوها با موفقیت دریافت شد', 'success');
       } catch {
         showAlert('خطا در دریافت لیست ویدیوها', 'danger');
         toast.error('خطا در دریافت لیست ویدیوها');
@@ -160,12 +159,16 @@ export default function VideosPage() {
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-2">
-                        {video.is_premium === 1 && (
-                          <div className="flex items-center gap-1 text-purple-500">
-                            <Crown className="w-4 h-4" />
-                            <span className="text-sm">پریمیوم</span>
-                          </div>
-                        )}
+                      {video.is_premium === 1 ? (
+                        <div className="flex items-center gap-1 text-purple-500">
+                          <Crown className="w-4 h-4" />
+                          <span className="text-sm">پریمیوم</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-gray-500">
+                          <span className="text-sm">عادی</span>
+                        </div>
+                      )}
                       </div>
                     </td>
                     <td className="p-4">
@@ -188,15 +191,14 @@ export default function VideosPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => router.push(`/admin/videos/${video.id}`)}
-                          title="مشاهده"
+                          onClick={() => window.open(`${process.env.NEXT_PUBLIC_APP_URL}/media/${video.id}`, '_blank')}                          title="مشاهده"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => router.push(`/admin/videos/edit/${video.id}`)}
+                          onClick={() => router.push(`/videos/edit/${video.id}`)}
                           title="ویرایش"
                         >
                           <Pencil className="h-4 w-4" />
@@ -225,7 +227,7 @@ export default function VideosPage() {
 
       <Button
         className="fixed bottom-20 left-4 w-12 h-12 rounded-full shadow-lg"
-        onClick={() => router.push('/admin/videos/new')}
+        onClick={() => router.push('/videos/new')}
         title="ایجاد ویدیو جدید"
       >
         <Plus className="h-6 w-6" />

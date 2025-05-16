@@ -58,10 +58,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .split('; ')
           .find((row) => row.startsWith('XSRF-TOKEN='))
           ?.split('=')[1];
-        console.log('XSRF-TOKEN:', xsrfToken);
-        if (!xsrfToken) {
-          throw new Error('No CSRF token received');
-        }
         return xsrfToken;
       } else {
         throw new Error('Failed to fetch CSRF token');
@@ -164,7 +160,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setError(null);
 
       const xsrfToken = await getCsrfToken();
-      console.log('register - XSRF-TOKEN:', xsrfToken);
 
       console.log('register - Request payload:', credentials);
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/register`, {

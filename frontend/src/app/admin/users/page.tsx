@@ -13,7 +13,7 @@ import { useAlert } from '@/contexts/AlertContext';
 interface User {
   id: number;
   name: string;
-  email: string;
+  phone: string;
   role: string;
 }
 
@@ -30,7 +30,6 @@ export default function UsersPage() {
       try {
         const response = await users.getAll();
         setUsers(response.data);
-        showAlert('لیست کاربران با موفقیت دریافت شد', 'success');
       } catch {
         showAlert('خطا در دریافت لیست کاربران', 'danger');
         toast.error('خطا در دریافت لیست کاربران');
@@ -64,15 +63,15 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="p-0">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full" dir="rtl">
             <thead>
               <tr className="border-b">
-                <th className="text-right p-4">نام</th>
-                <th className="text-right p-4">ایمیل</th>
-                <th className="text-right p-4">نقش</th>
-                <th className="text-right p-4">عملیات</th>
+                <th className="text-right p-4 w-1/4">نام</th>
+                <th className="text-right p-4 w-1/4">شماره تلفن</th>
+                <th className="text-right p-4 w-1/4">نقش</th>
+                <th className="text-right p-4 w-1/4">عملیات</th>
               </tr>
             </thead>
             <tbody>
@@ -84,16 +83,16 @@ export default function UsersPage() {
                 </tr>
               ) : (
                 usersList.map((user) => (
-                  <tr key={user.id} className="border-b">
+                  <tr key={user.id} className="border-b hover:bg-gray-50">
                     <td className="p-4">{user.name}</td>
-                    <td className="p-4">{user.email}</td>
+                    <td className="p-4">{user.phone}</td>
                     <td className="p-4">{user.role === 'admin' ? 'مدیر' : 'کاربر'}</td>
                     <td className="p-4">
                       <div className="flex gap-2">
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => router.push(`/admin/users/edit/${user.id}`)}
+                          onClick={() => router.push(`/users/edit/${user.id}`)}
                           title="ویرایش"
                         >
                           <Pencil className="h-4 w-4" />
@@ -113,7 +112,7 @@ export default function UsersPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => router.push(`/admin/consultations/reservations/new?user_id=${user.id}&user_name=${encodeURIComponent(user.name)}&user_email=${encodeURIComponent(user.email)}`)}
+                          onClick={() => router.push(`/reservations/new?user_phone=${encodeURIComponent(user.phone)}`)}
                           className="text-blue-600 border-blue-300 hover:bg-blue-50"
                           title="رزرو مشاوره"
                         >
@@ -143,7 +142,7 @@ export default function UsersPage() {
 
       <Button
         className="fixed bottom-20 left-4 w-12 h-12 rounded-full shadow-lg"
-        onClick={() => router.push('/admin/users/new')}
+        onClick={() => router.push('/users/new')}
         title="ایجاد کاربر جدید"
       >
         <Plus className="h-6 w-6" />

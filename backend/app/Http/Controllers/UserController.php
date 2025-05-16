@@ -5,8 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Requests\UserStoreRequest;
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use Laravel\Sanctum\PersonalAccessToken;
+use App\Http\Requests\UserUpdateRequest;
 
 class UserController extends Controller
 {
@@ -17,6 +16,8 @@ class UserController extends Controller
     }
 
     public function show(User $user) {
+        $user = User::with('consultationReservations')->findOrFail($user->id);
+
         return response()->json($user);
     }
 
@@ -39,13 +40,26 @@ class UserController extends Controller
         ]);
     }
 
-    public function courses() {
-        $user = auth()->user();
+    public function destroy(User $user) {
+        $user->delete();
 
-        if($user->courses) {
-            return response()->json($user->courses);
-        }
+        return response()->json([
+            'message' => 'حذف کاربر با موفقیت انجام شد.'
+        ]);
+    }
 
-        return response()->json(['message' => 'هیچ دوره ای ثبت نشده است.']);
+    public function update(UserUpdateRequest $request, User $user) {
+        $user->update($request->all());
+
+        return response()->json([
+            'user' => $user,
+            'message' => 'ثبت نام با موفقیت انجام شد' 
+        ]);
+    }
+
+    public function getUser(Request $request) {
+        $user = User::where('phone', $request->query('user_phone'))->first();
+
+        return response()->json($user);
     }
 }

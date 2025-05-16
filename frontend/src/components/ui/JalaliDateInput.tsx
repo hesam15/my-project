@@ -1,4 +1,7 @@
 import { useEffect, useRef } from 'react';
+import dayjs from 'dayjs';
+import jalaliday from 'jalaliday';
+dayjs.extend(jalaliday);
 
 export interface JalaliDateInputProps {
   value: string;
@@ -8,9 +11,19 @@ export interface JalaliDateInputProps {
   onlyDate?: boolean;
   onlyTime?: boolean;
   placeholder?: string;
+  thursdays_open?: number;
 }
 
-const JalaliDateInput = ({ value, onChange, minDate = "today", maxDate, onlyDate = true, onlyTime = false, placeholder = "تاریخ را انتخاب کنید" }: JalaliDateInputProps) => {
+const JalaliDateInput = ({ 
+  value, 
+  onChange, 
+  minDate = "today", 
+  maxDate = dayjs().add(1, 'month').calendar('jalali').format('YYYY/MM/DD'), 
+  onlyDate = true, 
+  onlyTime = false, 
+  placeholder = "تاریخ را انتخاب کنید",
+  thursdays_open = 0
+}: JalaliDateInputProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -22,6 +35,11 @@ const JalaliDateInput = ({ value, onChange, minDate = "today", maxDate, onlyDate
             minDate,
             maxDate,
             time: !onlyDate,
+            disabledDays: function(date: Date) {
+              const dayOfWeek = date.getDay();
+              // جمعه = 5، پنجشنبه = 4
+              return dayOfWeek === 7 || (dayOfWeek === 6 && thursdays_open === 0);
+            }
           });
 
           // Add input event listener
@@ -47,15 +65,13 @@ const JalaliDateInput = ({ value, onChange, minDate = "today", maxDate, onlyDate
     };
 
     initializeDatePicker();
-  }, [minDate, maxDate, onlyDate, onChange]);
+  }, [minDate, maxDate, onlyDate, onChange, thursdays_open]);
 
   return (
     <input
       ref={inputRef}
       type="text"
       data-jdp
-      data-jdp-only-date={onlyDate ? true : undefined}
-      data-jdp-only-time={onlyTime ? true : undefined}
       data-jdp-min-date={minDate}
       data-jdp-max-date={maxDate}
       placeholder={placeholder}
@@ -67,4 +83,4 @@ const JalaliDateInput = ({ value, onChange, minDate = "today", maxDate, onlyDate
   );
 };
 
-export default JalaliDateInput; 
+export default JalaliDateInput;

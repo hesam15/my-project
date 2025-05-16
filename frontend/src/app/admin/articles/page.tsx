@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { posts } from '@/lib/api';
-import { Eye, Pencil, Trash2, Crown, Plus, ArrowUpDown } from 'lucide-react';
+import { Eye, Pencil, Trash2, Crown, Plus, ArrowUpDown, BookOpen } from 'lucide-react';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import Image from 'next/image';
 import { useAlert } from '@/contexts/AlertContext';
@@ -41,10 +41,10 @@ export default function ArticlesPage() {
     }
 
     fetchArticles()
-  }, [])
+  }, [showAlert])
 
   const handleEdit = (id: string) => {
-    router.push(`/admin/articles/edit/${id}`);
+    router.push(`/articles/edit/${id}`);
   };
 
   const handleDelete = (id: string) => {
@@ -68,7 +68,17 @@ export default function ArticlesPage() {
   };
 
   if (loading) {
-    return <div>در حال بارگذاری...</div>;
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <svg className="animate-spin h-8 w-8 text-blue-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <p className="mt-2 text-gray-600">در حال بارگذاری...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -123,16 +133,28 @@ export default function ArticlesPage() {
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-2">
-                        {article.is_premium && (
+                        {article.is_premium ? (
                           <div className="flex items-center gap-1 text-purple-500">
                             <Crown className="w-4 h-4" />
                             <span className="text-sm">پریمیوم</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 text-gray-500">
+                            <span className="text-sm">عادی</span>
                           </div>
                         )}
                       </div>
                     </td>
                     <td className="p-4">
                       <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => window.open(`${process.env.NEXT_PUBLIC_APP_URL}/articles/${article.id}`, '_blank')}
+                          title="مشاهده"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -169,7 +191,7 @@ export default function ArticlesPage() {
 
       <Button
         className="fixed bottom-20 left-4 w-12 h-12 rounded-full shadow-lg"
-        onClick={() => router.push('/admin/articles/new')}
+        onClick={() => router.push('/articles/new')}
       >
         <Plus className="h-6 w-6" />
       </Button>

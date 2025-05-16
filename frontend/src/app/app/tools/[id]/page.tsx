@@ -11,6 +11,7 @@ import Comments from '@/components/comments/Comments'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { COMMENTABLE_TYPES } from '@/constants/models'
 import { useAlert } from '@/contexts/AlertContext'
+import { getImageUrl } from '@/utils/images'
 
 interface Comment {
   id: number
@@ -18,19 +19,26 @@ interface Comment {
   title: string
   content: string
   created_at: string
-  active?: boolean
+  status: 'active' | 'notActive' | 'rejected'
   user?: { name: string }
 }
 
 interface Tool {
   id: number;
   name: string;
-  name: string;
+  title: string;
   description: string;
   thumbnail_path: string;
+  tool_path?: string;
   is_premium: boolean;
   created_at: string;
   updated_at: string;
+  category?: string[];
+  likes_count: number;
+  comments_count: number;
+  bookmarks_count: number;
+  is_liked?: boolean;
+  comments?: Comment[];
 }
 
 interface ToolPageProps {
@@ -63,6 +71,10 @@ export default function ToolPage({ params }: ToolPageProps) {
         }
 
         const toolData = response.data
+        // Ensure comments is always an array
+        if (!toolData.comments) {
+          toolData.comments = [];
+        }
         setTool(toolData)
       } catch (error: any) {
         setError(error.message || 'خطا در دریافت اطلاعات ابزار')
@@ -73,7 +85,7 @@ export default function ToolPage({ params }: ToolPageProps) {
     }
 
     fetchTool()
-  }, [id])
+  }, [id, showAlert])
 
   const handleLike = async () => {
     if (!tool || isLiking || !user) {
@@ -96,7 +108,7 @@ export default function ToolPage({ params }: ToolPageProps) {
               }
             : null
         )
-        showAlert(prev => prev?.is_liked ? 'لایک حذف شد' : 'ابزار لایک شد', 'success')
+        showAlert(tool.is_liked ? 'لایک حذف شد' : 'ابزار لایک شد', 'success')
       }
     } catch (error) {
       showAlert('خطا در ثبت لایک', 'danger')
@@ -104,6 +116,8 @@ export default function ToolPage({ params }: ToolPageProps) {
       setIsLiking(false)
     }
   }
+
+  console.log(tool);
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -118,7 +132,7 @@ export default function ToolPage({ params }: ToolPageProps) {
         title: commentTitle,
         content: commentContent,
         commentable_id: tool?.id,
-        commentable_type: COMMENTABLE_TYPES.TOOL
+        commentable_type: COMMENTABLE_TYPES.MANAGEMENT_TOOL
       }
 
       const response = await comments.create(payload)
@@ -126,8 +140,8 @@ export default function ToolPage({ params }: ToolPageProps) {
 
       setTool(prev => prev ? {
         ...prev,
-        comments: [newComment, ...prev.comments],
-        comments_count: prev.comments_count + 1
+        comments: [newComment, ...(prev.comments || [])],
+        comments_count: (prev.comments_count || 0) + 1
       } : null)
 
       setCommentTitle('')
@@ -169,12 +183,6 @@ export default function ToolPage({ params }: ToolPageProps) {
     return (
       <div className="p-4 text-center text-red-500">
         <p>{error}</p>
-        <button 
-          onClick={() => router.push('/tools')} 
-          className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
-        >
-          بازگشت به لیست ابزارها
-        </button>
       </div>
     )
   }
@@ -187,14 +195,16 @@ export default function ToolPage({ params }: ToolPageProps) {
     <div className="container mx-auto py-6">
       <Card>
         <CardHeader>
-          <CardTitle>{tool.name}</CardTitle>
-          <div className="text-sm text-muted-foreground">{tool.created_at}</div>
+          <CardTitle>{tool.name || tool.title}</CardTitle>
+          <div className="text-sm text-muted-foreground">
+            {moment(tool.created_at).locale('fa').format('YYYY/MM/DD')}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="relative">
             <img 
-              src={tool.thumbnail_path} 
-              alt={tool.name} 
+              src={getImageUrl(tool.thumbnail_path, 'tool')} 
+              alt={tool.name || tool.title || 'تصویر ابزار'} 
               className="w-full h-48 object-cover mb-4 rounded-lg"
             />
             {tool.is_premium && (
@@ -206,11 +216,10 @@ export default function ToolPage({ params }: ToolPageProps) {
 
           <div className="bg-[#2B286A] px-4 py-3 flex justify-between items-start mb-4 rounded-lg">
             <div>
-              <h2 className="text-white font-bold text-base">
-                {tool.category.join(', ') || 'بدون دسته‌بندی'}
-              </h2>
-              <h3 className="text-white font-semibold text-lg mt-1">{tool.name}</h3>
-              <span className="text-white text-sm">{tool.created_at}</span>
+              <h3 className="text-white font-semibold text-lg mt-1">{tool.name || tool.title}</h3>
+              <span className="text-white text-sm">
+                {moment(tool.created_at).locale('fa').format('YYYY/MM/DD')}
+              </span>
             </div>
             <div className="flex flex-col items-end">
               <button onClick={handleShare} className="text-white mb-2">
@@ -218,12 +227,8 @@ export default function ToolPage({ params }: ToolPageProps) {
               </button>
               <div className="flex gap-4 text-white text-sm">
                 <div className="flex items-center gap-1">
-                  <BookmarkIcon className="w-5 h-5" />
-                  <span>{toFarsiNumber(tool.bookmarks_count)}</span>
-                </div>
-                <div className="flex items-center gap-1">
                   <ChatBubbleLeftIcon className="w-5 h-5" />
-                  <span>{toFarsiNumber(tool.comments_count)}</span>
+                  <span>{toFarsiNumber(tool.comments_count || 0)}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <button
@@ -236,7 +241,7 @@ export default function ToolPage({ params }: ToolPageProps) {
                     ) : (
                       <HeartIcon className="w-5 h-5" />
                     )}
-                    <span>{toFarsiNumber(tool.likes_count)}</span>
+                    <span>{toFarsiNumber(tool.likes_count || 0)}</span>
                   </button>
                 </div>
               </div>
@@ -281,21 +286,20 @@ export default function ToolPage({ params }: ToolPageProps) {
         </CardContent>
       </Card>
 
-      <Comments
-        comments={tool.comments.filter(comment => {
-          if (user && comment.user_id === user.id) return true
-          return comment.active
-        })}
-        commentableId={tool.id}
-        commentableType={COMMENTABLE_TYPES.MANAGEMENT_TOOL}
-        onCommentAdded={(newComment) => {
-          setTool(prev => prev ? {
-            ...prev,
-            comments: [newComment, ...prev.comments],
-            comments_count: newComment.active ? prev.comments_count + 1 : prev.comments_count
-          } : null)
-        }}
-      />
+      <div className="mt-6">
+        <Comments
+          comments={tool.comments || []}
+          commentableId={tool.id}
+          commentableType={COMMENTABLE_TYPES.MANAGEMENT_TOOL}
+          onCommentAdded={(newComment) => {
+            setTool(prev => prev ? {
+              ...prev,
+              comments: [newComment, ...(prev.comments || [])],
+              comments_count: (prev.comments_count || 0) + 1
+            } : null)
+          }}
+        />
+      </div>
     </div>
   )
 }

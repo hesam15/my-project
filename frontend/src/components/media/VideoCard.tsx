@@ -23,8 +23,6 @@ const getThumbnailUrl = (thumbnail: string) => {
   return thumbnail
 }
 
-
-
 export default function VideoCard({
   id,
   title,
@@ -44,14 +42,14 @@ export default function VideoCard({
   return (
     <Link href={`/media/${id}`}>
       <div 
-        className={`bg-white rounded-lg overflow-hidden shadow-[10px_4px_6px_rgba(0,0,0,0.1)] cursor-pointer border-2 border-gray-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.15)] transition-all duration-200 ${isLarge ? 'w-full' : 'w-48'}`}
+        className={`bg-white rounded-lg overflow-hidden shadow-[10px_4px_6px_rgba(0,0,0,0.1)] cursor-pointer border-2 border-gray-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.15)] transition-all duration-200 ${isLarge ? 'w-full' : 'w-48'} relative`}
       >
         {isPremium === 1 && (
           <span className="absolute top-2 left-2 bg-purple-600 text-white text-xs px-2 py-1 rounded-full z-10">
             پریمیوم
           </span>
         )}
-        <div className="p-2 relative">
+        <div className="p-2">
           <img src={getThumbnailUrl(thumbnail)} alt={title} className="w-full h-32 object-cover rounded-lg" />
         </div>
         <div className="p-3">

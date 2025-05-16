@@ -20,4 +20,17 @@ class ManagementTool extends Model
     public function user() {
         return $this->belongsTo(User::class);
     }
+
+    public function comments() {
+        return $this->morphMany(Comment::class, 'commentable');
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::deleting(function ($tool) {
+            $tool->comments()->delete();
+        });
+    }
 }

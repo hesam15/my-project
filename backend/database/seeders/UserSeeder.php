@@ -15,15 +15,15 @@ class UserSeeder extends Seeder
     {
         User::insert([
             [
-                'name' => 'hesam',
+                'name' => 'دانیال میر نجفی',
                 'phone' => '09123456789',
                 'role' => 'admin',
                 'is_premium' => true,
                 'password' => bcrypt('12345678'),
             ],
             [
-                'name' => 'hesam',
-                'phone' => '09059202884',
+                'name' => 'داوود پناهی',
+                'phone' => '09123456788',
                 'role' => 'customer',
                 'is_premium' => false,
                 'password' => bcrypt('12345678'),

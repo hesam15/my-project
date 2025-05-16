@@ -10,6 +10,13 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { useAlert } from '@/contexts/AlertContext';
 import { toast } from 'react-hot-toast';
 import { Calendar, Clock, User, Phone, MessageSquare } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface User {
   id: number;
@@ -41,14 +48,17 @@ interface Reservation {
 const statusMapping = {
   'در انتظار': 'pending',
   'انجام شده': 'done',
-  'لغو شده': 'canceled'
+  'لغو شده': 'canceled',
+  'گذشته': 'pasted'
+
 } as const;
 
 // Reverse mapping for display
 const reverseStatusMapping = {
   'pending': 'در انتظار',
   'done': 'انجام شده',
-  'canceled': 'لغو شده'
+  'canceled': 'لغو شده',
+  'گذشته': 'pasted'
 } as const;
 
 export default function ReservationsPage() {
@@ -95,13 +105,13 @@ export default function ReservationsPage() {
     }
   };
 
-  const handleStatusChange = async (reservationId: number, newStatusLabel: string) => {
+  const handleStatusChange = async (reservationId: number, newStatus: string) => {
     if (statusLoading === reservationId) return;
     
     setStatusLoading(reservationId);
     try {
-      const newStatus = statusMapping[newStatusLabel as keyof typeof statusMapping];
       await consultationReservations.updateStatus(reservationId, newStatus);
+      const newStatusLabel = reverseStatusMapping[newStatus as keyof typeof reverseStatusMapping];
       setReservations(reservations.map(reservation => 
         reservation.id === reservationId 
           ? { ...reservation, status: newStatus, status_label: newStatusLabel }
@@ -158,10 +168,12 @@ export default function ReservationsPage() {
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4 text-gray-500" />
                         <div>
-                          <div className="font-medium">{reservation.user.name}</div>
+                          <div className="font-medium">
+                            {reservation.user?.name || 'کاربر حذف شده'}
+                          </div>
                           <div className="text-sm text-gray-500 flex items-center gap-1">
                             <Phone className="w-3 h-3" />
-                            {reservation.user.phone}
+                            {reservation.user?.phone || '-'}
                           </div>
                         </div>
                       </div>
@@ -175,7 +187,7 @@ export default function ReservationsPage() {
                     <td className="p-4">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-gray-500" />
-                        {new Date(reservation.date).toLocaleDateString('fa-IR')}
+                        {reservation.date}
                       </div>
                     </td>
                     <td className="p-4">
@@ -185,43 +197,33 @@ export default function ReservationsPage() {
                       </div>
                     </td>
                     <td className="p-4">
-                      <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        reservation.status === 'pending' 
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : reservation.status === 'done'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {reservation.status_label}
-                      </div>
+                      <Select
+                        value={reservation.status}
+                        onValueChange={(value) => handleStatusChange(reservation.id, value)}
+                        disabled={statusLoading === reservation.id}
+                      >
+                        <SelectTrigger className={`w-[140px] ${
+                          reservation.status === 'pending' 
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : reservation.status === 'done'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          <SelectValue placeholder={reservation.status_label} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">در انتظار</SelectItem>
+                          <SelectItem value="done">انجام شده</SelectItem>
+                          <SelectItem value="canceled">لغو شده</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </td>
                     <td className="p-4">
                       <div className="flex gap-2">
-                        {reservation.status === 'pending' && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleStatusChange(reservation.id, 'done')}
-                            >
-                              انجام شده
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleStatusChange(reservation.id, 'canceled')}
-                            >
-                              لغو شده
-                            </Button>
-                          </>
-                        )}
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => {
-                            setSelectedId(reservation.id);
-                            setConfirmOpen(true);
-                          }}
+                          onClick={() => handleDelete(reservation.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -244,10 +246,10 @@ export default function ReservationsPage() {
 
       <Button
         className="fixed bottom-20 left-4 w-12 h-12 rounded-full shadow-lg"
-        onClick={() => router.push('/admin/consultations/reservations/new')}
+        onClick={() => router.push('/reservations/new')}
       >
         <Plus className="h-6 w-6" />
       </Button>
     </div>
   );
-} 
+}

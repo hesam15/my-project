@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('title');
             $table->string('consultant');
-            $table->string('description');
+            $table->longText('description');
             $table->string('license');
             $table->integer('consultation_time')->default(60);
             $table->string('active_times');

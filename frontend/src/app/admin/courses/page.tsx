@@ -40,9 +40,7 @@ export default function CoursesPage() {
       console.log('Response:', response);
       
       if (response.data) {
-        console.log('Courses data:', response.data);
         setCoursesList(response.data);
-        showAlert('لیست دوره‌ها با موفقیت دریافت شد', 'success');
       } else {
         console.log('No courses data found in response');
         setCoursesList([]);
@@ -184,7 +182,7 @@ export default function CoursesPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => router.push(`/admin/courses/${course.id}/videos/sort`)}
+                          onClick={() => router.push(`/courses/${course.id}/videos/sort`)}
                           title="مرتب‌سازی ویدیوها"
                         >
                           <ArrowUpDown className="h-4 w-4" />
@@ -192,7 +190,7 @@ export default function CoursesPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => router.push(`/admin/courses/${course.id}`)}
+                          onClick={() => window.open(`${process.env.NEXT_PUBLIC_APP_URL}/courses/${course.id}`, '_blank')}                          title="مشاهده"
                           title="مشاهده جزئیات"
                         >
                           <Eye className="h-4 w-4" />
@@ -200,7 +198,7 @@ export default function CoursesPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => router.push(`/admin/courses/edit/${course.id}`)}
+                          onClick={() => router.push(`/courses/edit/${course.id}`)}
                           title="ویرایش"
                         >
                           <Pencil className="h-4 w-4" />
@@ -238,7 +236,7 @@ export default function CoursesPage() {
 
       <Button
         className="fixed bottom-20 left-4 w-12 h-12 rounded-full shadow-lg"
-        onClick={() => router.push('/admin/courses/new')}
+        onClick={() => router.push('/courses/new')}
         title="ایجاد دوره جدید"
       >
         <Plus className="h-6 w-6" />

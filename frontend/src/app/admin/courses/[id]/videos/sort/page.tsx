@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -56,7 +57,7 @@ export default function SortCourseVideosPage() {
         if (!response.ok) throw new Error('خطا در دریافت اطلاعات دوره');
         const courseData = await response.json();
         setCourse(courseData);
-        setVideos(courseData.sorted_videos);
+        setVideos(courseData.videos);
       } catch (err) {
         console.error('Error fetching data:', err);
         toast.error('خطا در دریافت اطلاعات');
@@ -84,7 +85,7 @@ export default function SortCourseVideosPage() {
     setVideos(updatedItems);
 
     try {
-      // Update order in backend
+      // Update order in backend with both order and course_id
       await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses/${params.id}/videos/${reorderedItem.id}/signVideo`, {
         method: 'POST',
         headers: {
@@ -92,7 +93,10 @@ export default function SortCourseVideosPage() {
           'Accept': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ order: result.destination.index + 1 }),
+        body: JSON.stringify({ 
+          order: result.destination.index + 1,
+          course_id: parseInt(params.id as string)
+        }),
       });
 
       toast.success('ترتیب ویدیوها با موفقیت بروزرسانی شد');
@@ -106,6 +110,14 @@ export default function SortCourseVideosPage() {
     return (
       <div className="text-center p-6">
         <p>در حال بارگذاری...</p>
+      </div>
+    );
+  }
+
+  if (!videos) {
+    return (
+      <div className="text-center p-6">
+        <p>خطا در بارگذاری ویدیوها</p>
       </div>
     );
   }
@@ -214,4 +226,4 @@ export default function SortCourseVideosPage() {
       </Card>
     </div>
   );
-} 
+}

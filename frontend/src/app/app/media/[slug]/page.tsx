@@ -85,7 +85,9 @@ export default function VideoPage() {
           thumbnail_path: data.thumbnail_path,
           is_premium: data.is_premium || 0,
           likes: Array.isArray(data.likes) ? data.likes.length : 0,
-          comments_count: Array.isArray(data.comments) ? data.comments.filter((comment: any) => comment.active).length : 0,
+          comments_count: Array.isArray(data.comments) ? data.comments.filter((comment: any) => 
+            comment.active || (user && comment.user_id === user.id)
+          ).length : 0,
           is_liked: user && Array.isArray(data.likes) ? data.likes.some((like: any) => like.user_id === user.id) : false,
           created_at: data.created_at,
           comments: Array.isArray(data.comments) ? data.comments : [],
@@ -110,7 +112,8 @@ export default function VideoPage() {
         ? {
             ...prev,
             comments: [newComment, ...prev.comments],
-            comments_count: newComment.active ? prev.comments_count + 1 : prev.comments_count,
+            // کامنت‌های کاربر فعلی همیشه در تعداد کامنت‌ها محاسبه می‌شوند
+            comments_count: prev.comments_count + 1,
           }
         : null
     )

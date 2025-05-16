@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -77,7 +78,7 @@ export default function ConsultationsPage() {
               <div className="flex justify-between items-center">
                 <CardTitle>{consultation.title}</CardTitle>
                 <div className="flex gap-2">
-                  <Link href={`/admin/consultations/${consultation.id}/edit`}>
+                  <Link href={`/consultations/${consultation.id}/edit`}>
                     <Button variant="outline" size="icon">
                       <Pencil className="w-4 h-4" />
                     </Button>
@@ -111,9 +112,13 @@ export default function ConsultationsPage() {
                   <p className="text-sm text-gray-500">ساعات فعال</p>
                   <p>{consultation.active_times}</p>
                 </div>
-                <div className="col-span-2">
+                <div>
                   <p className="text-sm text-gray-500">توضیحات</p>
                   <p>{consultation.description}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">پنجشنبه‌ها باز است</p>
+                  <p>{consultation.thursdays_open ? 'بله' : 'خیر'}</p>
                 </div>
               </div>
             </CardContent>
@@ -122,16 +127,17 @@ export default function ConsultationsPage() {
       </div>
       <Button
         className="fixed bottom-20 left-4 w-12 h-12 rounded-full shadow-lg"
-        onClick={() => window.location.href = '/admin/consultations/new'}
+        onClick={() => window.location.href = '/consultations/new'}
       >
         <Plus className="h-6 w-6" />
       </Button>
       <ConfirmDialog
         open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
+        onCancel={() => setConfirmOpen(false)}
         onConfirm={handleConfirmDelete}
         title="آیا از حذف این مشاوره اطمینان دارید؟"
+        message="این عملیات قابل بازگشت نیست."
       />
     </div>
   );
-} 
+}

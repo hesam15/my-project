@@ -41,17 +41,19 @@ Route::prefix('/consultations')->controller(ConsultationController::class)->grou
     Route::get('/{consultation}', 'show');
 });
 
+Route::prefix('/comments')->controller(CommentController::class)->group(function() {
+    Route::get('/', 'index');
+});
+
+Route::get('/users/getUser', [UserController::class, 'getUser']);
+
 Route::middleware('checkTokenCookie')->group(function() {
     Route::get('/users/check', [AuthController::class, 'check']);
 
     Route::post('/comments/{comment}/status', [CommentController::class, 'changeStatus']);
-    Route::apiResource('comments', CommentController::class)->only(['index', 'store', 'update', 'destroy']);
-
-    Route::apiResource('posts', PostController::class)->only(['store', 'update', 'destroy']);
+    Route::apiResource('comments', CommentController::class)->only(['store', 'update', 'destroy']);
 
     Route::apiResource('tools', ManagementToolController::class)->only(['store', 'update', 'destroy']);
-
-    Route::apiResource('consultations', ConsultationController::class)->only(['store', 'update', 'destroy']);
 
     Route::put('/reservations/{reservation}/update-status', [ConsultationResevationController::class, 'updateStatus']);
 
@@ -63,6 +65,10 @@ Route::middleware('checkTokenCookie')->group(function() {
         Route::get('/getAll', [StatsController::class, 'index']);
 
         Route::apiResource('/users', UserController::class);
+
+        Route::apiResource('consultations', ConsultationController::class)->only(['store', 'update', 'destroy']);
+
+        Route::apiResource('posts', PostController::class)->only(['store', 'update', 'destroy']);
 
         Route::post('/courses/{course}/videos/{video}/signVideo', [CourseController::class, 'signVideo']);
         Route::apiResource('courses', CourseController::class)->only(['store', 'update', 'destroy']);

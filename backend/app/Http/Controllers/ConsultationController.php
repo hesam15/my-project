@@ -6,6 +6,8 @@ use App\Models\Consultation;
 use App\Models\ConsultationReservation;
 use Illuminate\Http\Request;
 
+use function Pest\Laravel\json;
+
 class ConsultationController extends Controller
 {
     public function index() {
@@ -15,6 +17,8 @@ class ConsultationController extends Controller
     }
 
     public function show(Consultation $consultation) {
+        $consultation = Consultation::with('comments')->findOrFail($consultation->id);
+
         return response()->json($consultation);
     }
 

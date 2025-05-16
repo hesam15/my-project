@@ -30,7 +30,9 @@
         "files": [
             "app/Helpers/CourseVideoSortingHelper.php",
             "app/Helpers/CourseNewVideoSortingHelper.php",
-            "app/Helpers/GetTimeSlotsHelper.php"
+            "app/Helpers/GetTimeSlotsHelper.php",
+            "app/Helpers/CheckPastReservationTimesHelper.php"
+
         ],
         "psr-4": {
             "App\\": "app/",

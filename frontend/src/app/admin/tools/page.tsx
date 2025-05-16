@@ -32,7 +32,6 @@ export default function ToolsPage() {
       try {
         const response = await managementTools.getAll();
         setTools(response.data);
-        showAlert('لیست ابزارها با موفقیت دریافت شد', 'success');
       } catch {
         showAlert('خطا در دریافت لیست ابزارها', 'danger');
         toast.error('خطا در دریافت لیست ابزارها');
@@ -114,7 +113,7 @@ export default function ToolsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => router.push(`/admin/tools/${tool.id}`)}
+                          onClick={() => window.open(`${process.env.NEXT_PUBLIC_APP_URL}/tools/${tool.id}`, '_blank')}                          title="مشاهده"
                           title="مشاهده جزئیات"
                         >
                           <Eye className="h-4 w-4" />
@@ -122,7 +121,7 @@ export default function ToolsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => router.push(`/admin/tools/edit/${tool.id}`)}
+                          onClick={() => router.push(`/tools/edit/${tool.id}`)}
                           title="ویرایش"
                         >
                           <Pencil className="h-4 w-4" />
@@ -163,7 +162,7 @@ export default function ToolsPage() {
 
       <Button
         className="fixed bottom-20 left-4 w-12 h-12 rounded-full shadow-lg"
-        onClick={() => router.push('/admin/tools/new')}
+        onClick={() => router.push('/tools/new')}
         title="ایجاد ابزار جدید"
       >
         <Plus className="h-6 w-6" />

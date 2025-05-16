@@ -1,7 +1,7 @@
 <?php
 
 if(!function_exists('courseVideoSorting')) {
-    function courseVideoSorting($course, $videoSort, int $newSort) {   
+    function courseVideoSorting($course, $videoSort, int $newSort) {         
         if($videoSort > $newSort) {
             $courseVideos = $course->videos()
                 ->where('sort', '<', $videoSort)

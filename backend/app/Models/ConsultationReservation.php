@@ -21,7 +21,6 @@ class ConsultationReservation extends Model
     ];
 
     protected $with = [
-        'user:id,name',
         'consultation:id,title,consultant'
     ];
 

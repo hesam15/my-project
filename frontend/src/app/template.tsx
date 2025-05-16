@@ -3,20 +3,32 @@
 import { usePathname, useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import BottomNavigation from '@/components/BottomNavigation'
-import AdminSidebar from '@/components/admin/AdminSidebar'
 import { HomeIcon } from '@heroicons/react/24/outline'
 import { useEffect, useState } from 'react'
 
 export default function Template({ children }: { children: React.ReactNode }) {
-  const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter()
   const pathname = usePathname();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
+  // بررسی دامنه برای تشخیص محیط ادمین
   useEffect(() => {
-    const url = window.location.hostname;
-
-    setIsAdmin(url.startsWith('admin.'));
+    setMounted(true);
+    const hostname = window.location.hostname;
+    setIsAdmin(hostname.startsWith('admin.'));
   }, []);
+
+  // اگر هنوز کامپوننت mount نشده، یک رندر خنثی برمی‌گردانیم تا از ناهماهنگی SSR و CSR جلوگیری کنیم
+  if (!mounted) {
+    return <>{children}</>;
+  }
+
+  // اگر در بخش ادمین هستیم، فقط محتوا را نمایش می‌دهیم و اجازه می‌دهیم 
+  // فایل admin/layout.tsx مدیریت داشبورد ادمین را به عهده بگیرد
+  if (isAdmin) {
+    return <>{children}</>;
+  }
 
   const handleTabChange = (tabId: number) => {
     switch (tabId) {
@@ -39,43 +51,23 @@ export default function Template({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className={isAdmin ? 'w-full min-h-screen bg-gray-50' : 'min-h-screen bg-[#F3F3F3] flex justify-center items-start'}>
-      {isAdmin ? (
-        <main className={!['/login', '/register'].includes(pathname) ? "grid grid-cols-12" : '' }>
-          {/* Sidebar */}
-          {!['/login', '/register'].includes(pathname) ? (
-          <div className="col-span-2 border-l border-gray-200 bg-white h-screen">
-            <AdminSidebar />
-          </div>
-          ) : ''}
-          {/* Content Area: Navbar + Main Content */}
-          <div className={!['/login', '/register'].includes(pathname) ? "col-span-10 flex flex-col" : '' }>
-            {!['/login', '/register'].includes(pathname) ? (
-            <Navbar title={getPageTitle(pathname)} icon={undefined} />
-            ) : ''}
-            <div className={!['/login', '/register'].includes(pathname) ? "flex-1 w-full pt-20 px-12 overflow-y-auto h-screen" : '' }>
-              {children}
-            </div>
-          </div>
-        </main>
-      ) : (
-        <div className="w-full max-w-[430px] min-h-screen bg-white relative mx-auto">
-          {/* Navbar - Fixed to the glass */}
-          <div className="fixed left-1/2 top-4 -translate-x-1/2 w-full max-w-[430px] px-4 z-50">
-            <Navbar 
-              title={getPageTitle(pathname)}
-              icon={<HomeIcon className="w-5 h-5" />}
-            />
-          </div>
-          <main className="pt-[calc(3.5rem+2rem)] pb-[calc(4rem+2rem)]">
-            {children}
-          </main>
-          {/* Bottom Navigation - Fixed to the glass */}
-          <div className={isAdmin ? 'hidden' : "fixed left-1/2 bottom-4 -translate-x-1/2 w-full max-w-[430px] px-4 z-50"}>
-            <BottomNavigation activeTab={getActiveTab(pathname)} onTabChange={handleTabChange} />
-          </div>
+    <div className="min-h-screen bg-[#F3F3F3] flex justify-center items-start">
+      <div className="w-full max-w-[430px] min-h-screen bg-white relative mx-auto">
+        {/* Navbar - Fixed to the glass */}
+        <div className="fixed left-1/2 top-4 -translate-x-1/2 w-full max-w-[430px] px-4 z-50">
+          <Navbar 
+            title={getPageTitle(pathname)}
+            icon={<HomeIcon className="w-5 h-5" />}
+          />
         </div>
-      )}
+        <main className="pt-[calc(3.5rem+2rem)] pb-[calc(4rem+2rem)]">
+          {children}
+        </main>
+        {/* Bottom Navigation - Fixed to the glass */}
+        <div className="fixed left-1/2 bottom-4 -translate-x-1/2 w-full max-w-[430px] px-4 z-50">
+          <BottomNavigation activeTab={getActiveTab(pathname)} onTabChange={handleTabChange} />
+        </div>
+      </div>
     </div>
   )
 }
@@ -98,21 +90,6 @@ function getActiveTab(pathname: string): number {
 }
 
 function getPageTitle(pathname: string): string {
-  const adminPageTitles: { [key: string]: string } = {
-    '/admin': 'داشبورد مدیریت',
-    '/admin/users': 'مدیریت کاربران',
-    '/admin/videos': 'مدیریت ویدیوها',
-    '/admin/articles': 'مدیریت مقالات',
-    '/admin/comments': 'مدیریت نظرات',
-    '/admin/courses': 'مدیریت دوره‌ها',
-    '/admin/videos/new': 'افزودن ویدیو',
-    '/admin/articles/new': 'افزودن مقاله',
-    '/admin/users/new': 'افزودن کاربر',
-    '/admin/courses/new': 'افزودن دوره',
-  };
-  if (pathname.startsWith('/admin')) {
-    return adminPageTitles[pathname] || 'مدیریت';
-  }
   switch (pathname) {
     case '/':
       return 'داشبورد'
@@ -127,4 +104,4 @@ function getPageTitle(pathname: string): string {
     default:
       return 'داشبورد'
   }
-} 
+}

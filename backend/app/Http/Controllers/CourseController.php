@@ -26,14 +26,15 @@ class CourseController extends Controller
     }
 
     public function index() {
-        $courses = Course::all();
+        $courses = Course::with('videos')->get();
 
         return response()->json($courses);
     }
 
     public function show(Course $course) {
-        $course = Course::with(['sorted_videos'])->findOrFail($course->id);
-
+        $course = Course::with(['videos' => function($query) {
+            $query->orderBy('sort', 'asc');
+        }])->findOrFail($course->id);
         return response()->json($course);
     }
 
@@ -81,14 +82,12 @@ class CourseController extends Controller
     }
 
     public function signVideo(Course $course,Video $video  ,Request $request) {
-        if($video->where('course_id', $course->id)->where('sort', $request->sort)->exists()) {
-            courseVideoSorting($course, $video->sort, $request->sort);
+        if($video->where('course_id', $course->id)->where('sort', $request->order)->exists()) {
+            courseVideoSorting($course, $video->sort, $request->order);
         }
 
-        $video->update([
-            'course_id' => $course->id,
-            'sort' => $request->sort
-        ]);
+        $video->sort = $request->order;
+        $video->save();
 
         return response()->json([
             'message' => 'ترتیب بندی با موفقیت انجام شد'

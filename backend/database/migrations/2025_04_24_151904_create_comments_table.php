@@ -14,8 +14,9 @@ return new class extends Migration
         Schema::create('comments', function (Blueprint $table) {
             $table->id();
             $table->string('title');
-            $table->text('content');
+            $table->longText('content');
             $table->foreignId('user_id')->onDelete('set null');
+            $table->enum('status', ['active', 'notActive', 'rejected'])->default('notActive');
             $table->boolean('active')->default(false);
             $table->morphs('commentable');
             $table->timestamps();

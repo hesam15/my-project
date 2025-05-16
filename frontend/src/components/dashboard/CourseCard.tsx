@@ -14,6 +14,7 @@ interface CourseCardProps {
   date: string | undefined // اجازه می‌ده undefined باشه
   likes: number | null | undefined | any
   comments: number | null | undefined | any
+  is_premium?: number // اضافه کردن پارامتر is_premium
 }
 
 export default function CourseCard(props: CourseCardProps) {
@@ -25,6 +26,7 @@ export default function CourseCard(props: CourseCardProps) {
     date,
     likes,
     comments,
+    is_premium = 0, // مقدار پیش‌فرض 0 (غیر پریمیوم)
   } = props
 
   const defaultThumbnailPath = `${process.env.NEXT_PUBLIC_API_URL}/storage/images/default-course-thumbnail.jpg`
@@ -86,8 +88,14 @@ export default function CourseCard(props: CourseCardProps) {
   console.log('CourseCard - Rendering image with URL:', imageUrl)
 
   return (
-    <Link href={`/dashboard/courses/${id}`} className="block">
-      <div className="rounded-2xl overflow-hidden border-2 border-white shadow-md">
+    <Link href={`/courses/${id}`} className="block">
+      <div className="rounded-2xl overflow-hidden border-2 border-white shadow-md relative">
+        {/* نمایش لیبل پریمیوم در صورتی که is_premium برابر با 1 باشد */}
+        {is_premium === 1 && (
+          <span className="absolute top-2 left-2 bg-purple-600 text-white text-xs px-2 py-1 rounded-full z-10">
+            پریمیوم
+          </span>
+        )}
         <div className="aspect-[1.8/1] relative p-2">
           <Image
             src={imageUrl}

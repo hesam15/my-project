@@ -6,9 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowRight, Loader2, Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { use } from 'react';
+import Image from 'next/image';
 
 interface Course {
   id: number;
@@ -28,16 +30,22 @@ interface EditCoursePageProps {
 }
 
 export default function EditCoursePage({ params }: EditCoursePageProps) {
+  // Unwrap the params Promise with React.use()
+  const unwrappedParams = use(params);
+  const courseId = unwrappedParams.id;
+  
   const router = useRouter();
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [newThumbnail, setNewThumbnail] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchCourse = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses/${params.id}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses/${courseId}`, {
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
@@ -56,7 +64,24 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
       }
     };
     fetchCourse();
-  }, [params.id]);
+  }, [courseId]);
+
+  // Handle thumbnail file change
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setNewThumbnail(file);
+    
+    // Create preview URL for the new thumbnail
+    if (file) {
+      const previewUrl = URL.createObjectURL(file);
+      setThumbnailPreview(previewUrl);
+      
+      // Clean up the object URL when component unmounts or when the file changes
+      return () => URL.revokeObjectURL(previewUrl);
+    } else {
+      setThumbnailPreview(null);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,26 +89,32 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
 
     setSaving(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses/${params.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+      // Use FormData to handle file uploads
+      const formData = new FormData();
+      formData.append('title', course.title);
+      formData.append('description', course.description);
+      formData.append('duration', course.duration);
+      formData.append('is_premium', course.is_premium ? '1' : '0');
+      
+      // Add _method field for Laravel to handle it as PUT/PATCH
+      formData.append('_method', 'PUT');
+      
+      // Add new thumbnail if selected
+      if (newThumbnail) {
+        formData.append('thumbnail_path', newThumbnail);
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/courses/${courseId}`, {
+        method: 'POST', // Using POST with _method=PUT for file uploads
         credentials: 'include',
-        body: JSON.stringify({
-          title: course.title,
-          description: course.description,
-          duration: course.duration,
-          is_premium: course.is_premium,
-        }),
+        body: formData,
       });
 
       if (!response.ok) {
         throw new Error('خطا در بروزرسانی دوره');
       }
 
-      router.push('/admin/courses');
+      router.push('/courses');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'خطا در بروزرسانی دوره');
     } finally {
@@ -117,10 +148,6 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
 
   return (
     <div className="space-y-6 w-full px-0">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">ویرایش دوره</h1>
-      </div>
-
       <Card className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
@@ -146,14 +173,55 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
             </div>
 
             <div>
-              <Label htmlFor="duration">مدت زمان</Label>
-              <Input
-                id="duration"
-                value={course.duration}
-                onChange={(e) => setCourse({ ...course, duration: e.target.value })}
-                required
-                placeholder="مثال: 2 ساعت"
-              />
+              <Label htmlFor="thumbnail_path">تصویر دوره</Label>
+              <div className="mt-2 mb-4">
+                {thumbnailPreview ? (
+                  <div className="relative w-48 h-32 overflow-hidden rounded-md">
+                    <Image
+                      src={thumbnailPreview}
+                      alt="پیش‌نمایش تصویر"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ) : course.thumbnail_path ? (
+                  <div className="relative w-48 h-32 overflow-hidden rounded-md">
+                    <Image
+                      src={`${process.env.NEXT_PUBLIC_API_URL}/storage/${course.thumbnail_path}`}
+                      alt="تصویر دوره"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center w-48 h-32 bg-gray-100 rounded-md">
+                    <p className="text-gray-500 text-sm">بدون تصویر</p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <label 
+                  htmlFor="thumbnail_path" 
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md cursor-pointer transition-colors"
+                >
+                  <Upload className="h-4 w-4" />
+                  <span>انتخاب تصویر</span>
+                </label>
+                <input
+                  type="file"
+                  id="thumbnail_path"
+                  name="thumbnail_path"
+                  accept="image/*"
+                  onChange={handleThumbnailChange}
+                  className="hidden"
+                />
+                {newThumbnail && (
+                  <span className="text-sm text-green-600">
+                    {newThumbnail.name}
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -163,16 +231,7 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
                   id="is_premium"
                   checked={course.is_premium}
                   onCheckedChange={(checked) => setCourse({ ...course, is_premium: checked })}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out ${
-                    course.is_premium ? 'bg-green-500' : 'bg-gray-300'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out ${
-                      course.is_premium ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </Switch>
+                />
                 <span className={course.is_premium ? 'text-green-500' : 'text-gray-500'}>
                   {course.is_premium ? 'فعال' : 'غیرفعال'}
                 </span>

@@ -41,6 +41,9 @@ class VideoController extends Controller
         $videoPath = FileStorageService::store($request->file('video_path'), $this->user, 'video');
         $thumbnailPath = ThumbnailStorageService::store($request->file('thumbnail_path'), $this->user, 'video');
 
+        $maxSort = Video::where('course_id', $request->course_id)->max('sort');
+        $sort = is_null($request->sort) ? $maxSort + 1 : $request->sort;
+
         $video = Video::create([
             'title' => $request->title,
             'description' => $request->description,
@@ -48,7 +51,7 @@ class VideoController extends Controller
             'course_id' => $request->course_id,
             'is_premium' => boolval($request->is_premium),
             'thumbnail_path' => $thumbnailPath,
-            'sort' => $request->sort
+            'sort' => $sort
         ]);
 
         return response()->json([

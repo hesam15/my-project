@@ -17,6 +17,7 @@ interface Course {
   created_at: string
   likes: any[]
   comments: any[]
+  is_premium?: number // اضافه کردن فیلد is_premium
 }
 
 export default function CoursesSlider() {
@@ -98,6 +99,7 @@ export default function CoursesSlider() {
                 date={course.created_at}
                 likes={course.likes}
                 comments={course.comments}
+                is_premium={course.is_premium} // پاس دادن is_premium به CourseCard
               />
             </SwiperSlide>
           ))}

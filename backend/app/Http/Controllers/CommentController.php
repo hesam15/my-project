@@ -14,12 +14,14 @@ class CommentController extends Controller
 
     public function __construct() {
         $token = PersonalAccessToken::findToken(FacadesRequest::cookie('auth_token'));
-        $this->user = $token->tokenable;
+        if($token) {
+            $this->user = $token->tokenable;
+        }
     }
 
     public function index() {
-        $comments = Comment::all();
-
+        $comments = Comment::with('commentable')->get();
+        
         return response()->json($comments);
     }
 
@@ -39,7 +41,7 @@ class CommentController extends Controller
     }
 
     public function changeStatus(Request $request ,Comment $comment) {
-        $comment->active = $request->status;
+        $comment->status = $request->status;
         $comment->save();
 
         return response()->json([

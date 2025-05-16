@@ -15,11 +15,11 @@ return [
     |
     */
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
+    'paths' => ['api/*', 'sanctum/csrf-cookie', 'logout'],
 
     'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 
-    'allowed_origins' => ['http://app.localhost:3000', 'http://admin.localhost:3000'],
+    'allowed_origins' => ['http://app.localhost:3000', 'http://admin.localhost:3000','http://localhost:3000', 'https://app.modiri.at', 'https://admin.modiri.at'],
 
     'allowed_origins_patterns' => [],
 

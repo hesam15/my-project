@@ -2,19 +2,19 @@ import axios from 'axios'
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
-  withCredentials: true
 })
 
 // Auth APIs
 export const auth = {
-  login: (data: { email: string; password: string }) => 
+  login: (data: { phone: string; password: string }) => 
     api.post('/api/users/login', data),
   
-  register: (data: { name: string; email: string; password: string; password_confirmation: string }) => 
+  register: (data: { name: string; phone: string; password: string; password_confirmation: string }) => 
     api.post('/api/users/register', data),
   
   logout: () => 
@@ -23,17 +23,17 @@ export const auth = {
   check: () => 
     api.get('/api/users/check'),
   
-  forgotPassword: (data: { email: string }) => 
+  forgotPassword: (data: { phone: string }) => 
     api.post('/api/forgot-password', data),
   
-  resetPassword: (data: { token: string; email: string; password: string; password_confirmation: string }) => 
+  resetPassword: (data: { token: string; phone: string; password: string; password_confirmation: string }) => 
     api.post('/api/reset-password', data),
   
-  verifyEmail: (id: string, hash: string) => 
-    api.get(`/api/verify-email/${id}/${hash}`),
+  verifyphone: (id: string, hash: string) => 
+    api.get(`/api/verify-phone/${id}/${hash}`),
   
   resendVerification: () => 
-    api.post('/api/email/verification-notification')
+    api.post('/api/phone/verification-notification')
 }
 
 // Posts APIs
@@ -76,11 +76,8 @@ export const posts = {
 
 // Comments APIs
 export const comments = {
-  create: async (data: { title: string; content: string; commentable_type: string; commentable_id: number }) => {
-    console.log('Creating comment with data:', data)
-    const response = await api.post('/comments', data)
-    return response
-  },
+  create: (data: any) => 
+    api.post('/api/comments' ,data),
   getAll: () => 
     api.get('/api/comments'),
   
@@ -93,7 +90,7 @@ export const comments = {
   delete: (id: string) => 
     api.delete(`/api/comments/${id}`),
 
-  changeStatus: (id: string, status: boolean) =>
+  changeStatus: (id: string, status: string) =>
     api.post(`/api/comments/${id}/status`, { status })
 }
 
@@ -142,7 +139,10 @@ export const users = {
     api.get(`/api/users/${id}`),
   
   update: (id: string, data: any) => 
-    api.put(`/api/users/${id}`, data)
+    api.put(`/api/users/${id}`, data),
+
+  delete: (id: string) => 
+    api.delete(`/api/users/${id}`)
 }
 
 // Likes API
@@ -200,11 +200,14 @@ export const consultationReservations = {
 
 // Add request interceptor for CSRF token
 api.interceptors.request.use(async (config) => {
-  // Get CSRF token from cookie
-  const csrfToken = document.cookie.split('; ').find(row => row.startsWith('XSRF-TOKEN='))?.split('=')[1]
-  
-  if (csrfToken) {
-    config.headers['X-XSRF-TOKEN'] = decodeURIComponent(csrfToken)
+  // Check if we're in the browser environment
+  if (typeof window !== 'undefined') {
+    // Get CSRF token from cookie
+    const csrfToken = document.cookie.split('; ').find(row => row.startsWith('XSRF-TOKEN='))?.split('=')[1]
+    
+    if (csrfToken) {
+      config.headers['X-XSRF-TOKEN'] = decodeURIComponent(csrfToken)
+    }
   }
   
   return config
@@ -214,7 +217,7 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && typeof window !== 'undefined') {
       // Handle unauthorized access
       window.location.href = '/login'
     }
@@ -222,4 +225,4 @@ api.interceptors.response.use(
   }
 )
 
-export default api 
+export default api

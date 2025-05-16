@@ -37,7 +37,7 @@ class CommentStoreRequest extends FormRequest
     {
         return [
             'title' => 'required|string',
-            'content' => 'required|string|max:50',
+            'content' => 'required|string|max:1000',
             'commentable_type' => 'required|string',
             'commentable_id' => 'required',
         ];

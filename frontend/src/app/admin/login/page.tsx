@@ -1,20 +1,22 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { toast } from 'sonner'; // یا کتابخانه toast دیگر
+import { toast } from 'sonner';
 
 export default function LoginPage() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const { login, loading, error } = useAuthContext();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/admin';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +24,7 @@ export default function LoginPage() {
     try {
       await login({ phone, password });
       toast.success('ورود با موفقیت انجام شد');
-      router.push('/');
+      router.replace(redirectTo);
     } catch (error) {
       toast.error('ورود ناموفق بود. لطفا اطلاعات را بررسی کنید');
       console.error('Login error:', error);
@@ -33,7 +35,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">ورود به حساب کاربری</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">ورود به پنل مدیریت</CardTitle>
           <CardDescription className="text-center">
             لطفا شماره تلفن و رمز عبور خود را وارد کنید
           </CardDescription>
@@ -77,12 +79,6 @@ export default function LoginPage() {
               {loading ? 'در حال ورود...' : 'ورود'}
             </Button>
           </form>
-          <div className="mt-4 text-center text-sm">
-            حساب کاربری ندارید؟{' '}
-            <Link href="/register" className="text-blue-600 hover:underline">
-              ثبت نام کنید
-            </Link>
-          </div>
         </CardContent>
       </Card>
     </div>

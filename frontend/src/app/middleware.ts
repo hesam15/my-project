@@ -10,7 +10,7 @@ export function middleware(request: NextRequest) {
   // اگر درخواست از subdomain admin آمده باشد
   if (hostname?.startsWith('admin.')) {
     // مسیر را به دایرکتوری admin تغییر دهید
-    url.pathname = `/admin${url.pathname}`
+    url.pathname = `/${url.pathname}`
     return NextResponse.rewrite(url)
   }
 

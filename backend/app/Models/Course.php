@@ -18,7 +18,7 @@ class Course extends Model
 
     protected $with = [
         'likes',
-        'comments'
+        'comments',
     ];
 
     public function creator() {
@@ -48,5 +48,14 @@ class Course extends Model
         return $this->videos()
             ->orderBy('sort', 'asc')
             ->get();
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::deleting(function ($course) {
+            $course->comments()->delete();
+        });
     }
 }

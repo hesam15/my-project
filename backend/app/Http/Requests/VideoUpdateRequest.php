@@ -53,7 +53,7 @@ class VideoUpdateRequest extends FormRequest
                             $fail('فایل ویدیویی باید یکی از فرمت‌های avi، mpeg، mp4 یا quicktime باشد.');
                         }
                     } elseif (is_string($value)) {
-                        if (!preg_match('/^videos\/[0-9]+\/[a-zA-Z0-9_\-\.]+\.(mp4|avi|mpeg|mov)$/', $value)) {
+                        if (!preg_match('/^videos\/[0-9]+\/[a-zA-Z0-9_\-\.\s\(\)]+\.(mp4|avi|mpeg|mov)$/', $value)) {
                             $fail('مسیر ویدیوی فعلی معتبر نیست.');
                         }
                     } else {

@@ -32,7 +32,7 @@ export default function NewArticlePage() {
         body: formData,
       });
       showAlert('مقاله با موفقیت ایجاد شد', 'success');
-      router.push('/admin/articles');
+      router.push('/articles');
     } catch {
       showAlert('خطا در ایجاد مقاله', 'danger');
     } finally {
@@ -44,9 +44,6 @@ export default function NewArticlePage() {
     <Suspense fallback={<div>در حال بارگذاری...</div>}>
       <div className="space-y-6 w-full px-0 py-6">
         <Card>
-          <CardHeader>
-            <CardTitle>ایجاد مقاله جدید</CardTitle>
-          </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
@@ -113,17 +110,10 @@ export default function NewArticlePage() {
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.push('/admin/articles')}
-                >
-                  انصراف
-                </Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? 'در حال ذخیره...' : 'ذخیره'}
-                </Button>
+              <div className="pt-6 mt-6 border-t border-gray-200">
+              <Button type="submit" variant="default">
+                ذخیره تغییرات
+              </Button>
               </div>
             </form>
           </CardContent>

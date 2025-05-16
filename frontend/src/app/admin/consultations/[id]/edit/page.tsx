@@ -32,7 +32,7 @@ export default function EditConsultationPage() {
 
   const fetchConsultation = async () => {
     try {
-      const response = await consultations.get(params.id as string);
+      const response = await consultations.getOne(params.id);
       setConsultation(response.data);
     } catch {
       showAlert('خطا در دریافت اطلاعات مشاوره', 'danger');
@@ -61,7 +61,6 @@ export default function EditConsultationPage() {
 
   return (
     <div className="container mx-auto py-6">
-      <h1 className="text-2xl font-bold mb-6">ویرایش مشاوره</h1>
       <ConsultationForm
         consultation={consultation}
         onSubmit={handleSubmit}

@@ -13,7 +13,6 @@ interface Tool {
   title: string;
   description: string;
   thumbnail_path: string;
-  image: string;
   is_premium: boolean;
   rating: number;
   price: number;
@@ -66,6 +65,7 @@ export default function ToolsPage() {
             alt="ابزار مدیریت"
             fill
             className="object-cover opacity-20"
+            priority
           />
         </div>
       </div>
@@ -111,8 +111,8 @@ export default function ToolsPage() {
                   </div>
                   <div className="w-24 h-24 relative flex-shrink-0">
                     <Image
-                      src={tool.image || '/images/calc.png'}
-                      alt={tool.title}
+                      src={tool.thumbnail_path ? `${process.env.NEXT_PUBLIC_API_URL}/storage/${tool.thumbnail_path}` : '/images/calc.png'}
+                      alt={tool.title || 'تصویر ابزار'}
                       fill
                       className="object-contain"
                     />
@@ -125,4 +125,4 @@ export default function ToolsPage() {
       </div>
     </main>
   )
-} 
+}

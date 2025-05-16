@@ -16,19 +16,26 @@ export default function ArticlesList({ articles }: ArticlesListProps) {
     )
   }
 
+  console.log(articles);
+
   return (
     <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
-      {articles.map((article) => (
-        <ArticleCard
-          key={article.id}
-          id={article.id}
-          title={article.title}
-          content={article.content}
-          slug={article.slug}
-          thumbnail={article.thumbnail_path}
-          date={article.created_at}
-        />
-      ))}
+      {articles.map((article) => {
+        // Use slug if available, otherwise fall back to ID
+        const articleSlug = article.slug || article.id;
+        
+        return (
+          <ArticleCard
+            key={article.id}
+            id={article.id}
+            title={article.title}
+            content={article.content}
+            slug={articleSlug}
+            thumbnail={article.thumbnail_path}
+            date={article.created_at}
+          />
+        );
+      })}
     </div>
   )
 } 

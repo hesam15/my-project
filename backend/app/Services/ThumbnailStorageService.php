@@ -26,7 +26,9 @@ class ThumbnailStorageService {
             throw new HttpResponseException($response);
         }
 
-        $path = $thumbnail->storeAs('images/'.$user->id.'/'.$type.'_thumbnails' ,$thumbnailName ,'public');
+        $path = $oldThumbnail != $thumbnailPath 
+            ? $thumbnail->storeAs('images/'.$user->id.'/'.$type.'_thumbnails' ,$thumbnailName ,'public')
+            : $oldThumbnail;
 
         return $path;
     }

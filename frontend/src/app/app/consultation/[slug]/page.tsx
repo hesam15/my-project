@@ -1,8 +1,11 @@
-'use client'
 
+'use client'
+    
 import { useState, useEffect, useRef, Suspense } from 'react'
 import Image from 'next/image'
 import { StarIcon, ClockIcon } from '@heroicons/react/24/solid'
+import { HeartIcon, ChatBubbleLeftIcon } from '@heroicons/react/24/outline'
+import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid'
 import { format, parse } from 'date-fns-jalali'
 import { faIR } from 'date-fns-jalali/locale'
 import { useRouter, useParams } from 'next/navigation'
@@ -12,7 +15,31 @@ import dayjs from 'dayjs'
 import jalaliday from 'jalaliday'
 import "@majidh1/jalalidatepicker/dist/jalalidatepicker.min.css";
 import { useAlert } from '@/contexts/AlertContext'
+import { toPersianNumbers } from '@/utils/numbers'
+import moment from 'jalali-moment'
+import { comments, likes } from '@/lib/api'
+import Comments from '@/components/comments/Comments'
+import { COMMENTABLE_TYPES } from '@/constants/models'
+
 dayjs.extend(jalaliday);
+
+// Interface for Comment
+interface Comment {
+  id: number
+  user_id: number
+  title: string
+  content: string
+  created_at: string
+  status: 'active' | 'notActive' | 'rejected'
+  user?: { name: string }
+}
+
+// Interface for Like
+interface Like {
+  user_id: number
+  likable_type: string
+  likable_id: number
+}
 
 // Interface for Consultant Data
 interface ConsultantData {
@@ -26,6 +53,8 @@ interface ConsultantData {
   thursdays_open: number // 1 for true, 0 for false
   created_at: string
   updated_at: string
+  likes?: Like[]
+  comments?: Comment[]
 }
 
 // Interface for User Data
@@ -130,6 +159,8 @@ interface ConsultationDateTimePickerProps {
   setSelectedTime: (time: string | null) => void;
   minDate?: string;
   maxDate?: string;
+  onTimeReserved?: (time: string) => void;
+  thursdays_open?: number;
 }
 
 const ConsultationDateTimePicker = ({
@@ -140,9 +171,12 @@ const ConsultationDateTimePicker = ({
   setSelectedTime,
   minDate = 'today',
   maxDate = '1403/12/29',
+  onTimeReserved,
+  thursdays_open,
 }: ConsultationDateTimePickerProps) => {
   const [timeButtons, setTimeButtons] = useState<{ time: string; disabled: boolean }[]>([]);
   const [reservedTimes, setReservedTimes] = useState<string[]>([]);
+  const { showAlert } = useAlert();
 
   useEffect(() => {
     setSelectedTime(null);
@@ -205,7 +239,7 @@ const ConsultationDateTimePicker = ({
       }
     };
     fetchAvailableTimes();
-  }, [consultantId, selectedDate, setSelectedTime]);
+  }, [consultantId, selectedDate, setSelectedTime, showAlert]);
 
   return (
     <>
@@ -230,7 +264,12 @@ const ConsultationDateTimePicker = ({
               <button
                 type="button"
                 key={time}
-                onClick={() => !disabled && setSelectedTime(time)}
+                onClick={() => {
+                  if (!disabled) {
+                    setSelectedTime(time);
+                    if (onTimeReserved) onTimeReserved(time);
+                  }
+                }}
                 disabled={disabled}
                 className={`w-full py-2 rounded-lg border text-center transition-colors ${
                   selectedTime === time
@@ -263,6 +302,21 @@ function ConsultantPageContent() {
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
   const { showAlert } = useAlert();
+  const [timeButtons, setTimeButtons] = useState<{ time: string; disabled: boolean }[]>([]);
+  const [isLiking, setIsLiking] = useState(false)
+  
+  // State for consultation data with additional properties
+  const [consultationData, setConsultationData] = useState<{
+    likes_count: number,
+    is_liked: boolean,
+    comments_count: number,
+    comments: Comment[]
+  }>({
+    likes_count: 0,
+    is_liked: false,
+    comments_count: 0,
+    comments: []
+  })
 
   // Set selectedDate from jalalidatepicker input on mount if empty
   useEffect(() => {
@@ -300,6 +354,16 @@ function ConsultantPageContent() {
         else if (response.status >= 500) showAlert('خطای سرور! لطفا بعدا تلاش کنید.', 'danger');
         const result = await response.json()
         setConsultantData(result)
+        
+        // Initialize consultation data with comments and likes
+        const activeCommentsCount = result.comments?.filter((comment: Comment) => comment.status === 'active').length || 0;
+        setConsultationData({
+          likes_count: result.likes?.length || 0,
+          is_liked: false,
+          comments_count: activeCommentsCount,
+          comments: result.comments || []
+        })
+        
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'خطای ناشناخته در بارگذاری اطلاعات مشاور'
         setError(errorMessage)
@@ -307,7 +371,94 @@ function ConsultantPageContent() {
       }
     }
     fetchConsultantData()
-  }, [slug])
+  }, [slug, showAlert])
+  
+  // Check if user has liked the consultation
+  useEffect(() => {
+    if (user && consultantData?.likes) {
+      setConsultationData(prev => ({
+        ...prev,
+        is_liked: consultantData.likes?.some(like => like.user_id === user.id) || false
+      }))
+    }
+  }, [user, consultantData?.likes])
+
+  // Handle like toggle
+  const handleLike = async () => {
+    if (isLiking || !user || !consultantData) return
+
+    setIsLiking(true)
+    try {
+      const response = await likes.toggle({
+        likeable_id: consultantData.id,
+        likeable_type: COMMENTABLE_TYPES.MANAGEMENT_TOOL
+      })
+
+      if (response.status === 200) {
+        setConsultationData(prev => ({
+          ...prev,
+          likes_count: prev.is_liked ? prev.likes_count - 1 : prev.likes_count + 1,
+          is_liked: !prev.is_liked
+        }))
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error)
+    } finally {
+      setIsLiking(false)
+    }
+  }
+
+  // Handle comment added
+  const handleCommentAdded = (newComment: Comment) => {
+    setConsultationData(prev => ({
+      ...prev,
+      comments: [newComment, ...prev.comments],
+      // Only increment comment count if the comment is active
+      comments_count: newComment.status === 'active' ? prev.comments_count + 1 : prev.comments_count
+    }))
+  }
+
+  // Handle comment status changed
+  const handleCommentStatusChanged = (commentId: number, status: 'active' | 'notActive' | 'rejected') => {
+    setConsultationData(prev => {
+      const updatedComments = prev.comments.map(comment => 
+        comment.id === commentId ? { ...comment, status } : comment
+      );
+      
+      // Recalculate active comments count
+      const newActiveCommentsCount = updatedComments.filter(comment => comment.status === 'active').length;
+      
+      return {
+        ...prev,
+        comments: updatedComments,
+        comments_count: newActiveCommentsCount
+      };
+    })
+  }
+
+  // Format date for display
+  const formatDate = (dateStr: string | undefined) => {
+    if (!dateStr || dateStr === 'undefined' || dateStr === 'null') {
+      return moment().locale('fa').format('YYYY/MM/DD')
+    }
+
+    try {
+      let parsedDate = moment(dateStr, [
+        'YYYY-MM-DDTHH:mm:ss.SSSSSSZ',
+        'YYYY-MM-DDTHH:mm:ssZ',
+        'YYYY-MM-DD',
+      ], true)
+
+      if (!parsedDate.isValid()) {
+        throw new Error('Invalid date format')
+      }
+
+      return parsedDate.locale('fa').format('YYYY/MM/DD')
+    } catch (error) {
+      console.error('Date format error:', { dateStr, error })
+      return moment().locale('fa').format('YYYY/MM/DD')
+    }
+  }
 
   // Handle reservation submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -345,14 +496,36 @@ function ConsultantPageContent() {
         credentials: 'include',
         body: JSON.stringify(reservationData)
       })
+      
+      if (!response.ok) {
+        throw new Error('خطا در رزرو مشاوره')
+      }
+
+      // آپدیت وضعیت دکمه‌های ساعت
+      setTimeButtons(prev => 
+        prev.map(button => 
+          button.time === selectedTime 
+            ? { ...button, disabled: true }
+            : button
+        )
+      );
+
       let message = '';
       try {
-        const data = await response.clone().json();
+        const data = await response.json();
         if (data && data.message) message = data.message;
       } catch {}
-      if (response.ok && message) showAlert(message, 'success');
-      else if (response.status >= 400 && response.status < 500 && message) showAlert(message, 'info');
-      else if (response.status >= 500) showAlert('خطای سرور! لطفا بعدا تلاش کنید.', 'danger');
+
+      if (message) {
+        showAlert(message, 'success');
+      } else {
+        showAlert('رزرو با موفقیت انجام شد', 'success');
+      }
+
+      // ریدایرکت به صفحه پروفایل و رفرش
+      window.location.reload();
+      router.push('/profile');
+      
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'خطای ناشناخته در رزرو مشاوره'
       toast.error(errorMessage)
@@ -369,6 +542,16 @@ function ConsultantPageContent() {
   const handleTimeSelect = (time: string) => {
     setSelectedTime(time)
   }
+
+  const handleTimeReserved = (time: string) => {
+    setTimeButtons(prev => 
+      prev.map(button => 
+        button.time === time 
+          ? { ...button, disabled: true }
+          : button
+      )
+    );
+  };
 
   if (error) {
     return (
@@ -410,16 +593,29 @@ function ConsultantPageContent() {
         <div className="flex justify-between items-center">
           <h1 className="text-xl font-bold text-gray-800">{consultantData.title}</h1>
           <div className="flex gap-4 text-gray-500">
+            <button 
+              onClick={handleLike}
+              disabled={isLiking || !user}
+              className="flex items-center gap-1 transition-colors hover:text-red-500 disabled:opacity-50"
+            >
+              {consultationData.is_liked ? (
+                <HeartIconSolid className="w-5 h-5 text-red-500" />
+              ) : (
+                <HeartIcon className="w-5 h-5" />
+              )}
+              <span>{toPersianNumbers(consultationData.likes_count)}</span>
+            </button>
             <div className="flex items-center gap-1">
-              <StarIcon className="w-5 h-5 text-yellow-400" />
-              <span>4.5</span>
+              <ChatBubbleLeftIcon className="w-5 h-5" />
+              <span>{toPersianNumbers(consultationData.comments_count)}</span>
             </div>
             <div className="flex items-center gap-1">
               <ClockIcon className="w-5 h-5" />
-              <span>{consultantData.consultation_time} دقیقه</span>
+              <span>{toPersianNumbers(consultantData.consultation_time)} دقیقه</span>
             </div>
           </div>
         </div>
+        <div className="text-sm text-gray-500">{formatDate(consultantData.created_at)}</div>
 
         <div className="border-t border-gray-100 pt-4">
           <h2 className="font-bold text-gray-800 mb-2">مشاور</h2>
@@ -453,29 +649,39 @@ function ConsultantPageContent() {
         <form onSubmit={handleSubmit} className={`${!isAuthenticated ? 'opacity-50 pointer-events-none' : ''}`}>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">رزرو نوبت</h2>
           <ConsultationDateTimePicker
-            consultantId={consultantData.id}
+            consultantId={consultantData?.id}
             selectedDate={selectedDate}
             setSelectedDate={setSelectedDate}
             selectedTime={selectedTime}
             setSelectedTime={setSelectedTime}
+            thursdays_open={consultantData?.thursdays_open}
           />
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !selectedTime}
             className="w-full mt-6 py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
           >
-            {isSubmitting ? 'در حال رزرو...' : 'رزرو مشاوره'}
+            {isSubmitting ? 'در حال ثبت...' : 'ثبت رزرو'}
           </button>
         </form>
       </div>
+
+      {/* Comments Section */}
+      <Comments
+        comments={consultationData.comments}
+        commentableId={consultantData.id}
+        commentableType={COMMENTABLE_TYPES.CONSULTATION}
+        onCommentAdded={handleCommentAdded}
+        onCommentStatusChanged={handleCommentStatusChanged}
+      />
     </div>
-  )
+  );
 }
 
-export default function ConsultantPage() {
+export default function Page() {
   return (
-    <Suspense fallback={<div>در حال بارگذاری...</div>}>
+    <Suspense fallback={<div>Loading...</div>}>
       <ConsultantPageContent />
     </Suspense>
-  )
+  );
 }

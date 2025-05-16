@@ -18,9 +18,9 @@ interface ManagementTool {
   name: string
   description: string
   tool_path: string
-  thumbnail_path: string
+  thumbnail_path: string | null
   is_premium: number
-  user_id: number
+  user_id: number | null
   created_at: string
   updated_at: string
 }
